@@ -1,4 +1,5 @@
 export interface Address {
+    _id?: string;
     text: string;
     isDefault: boolean;
 }

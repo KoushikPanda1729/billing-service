@@ -236,6 +236,132 @@
                         "description": "Delete a customer.\n\n**Requires:** Admin or Manager role\n\n**Response:** Returns deleted customer object"
                     },
                     "response": []
+                },
+                {
+                    "name": "Add Address",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    pm.test('Address added successfully', function() {",
+                                    "        pm.response.to.have.status(200);",
+                                    "    });",
+                                    "    ",
+                                    "    pm.test('Response has customer with addresses', function() {",
+                                    "        var jsonData = pm.response.json();",
+                                    "        pm.expect(jsonData.customer).to.have.property('address');",
+                                    "        pm.expect(jsonData.customer.address).to.be.an('array');",
+                                    "        ",
+                                    "        // Save the first address ID for update/delete operations",
+                                    "        if (jsonData.customer.address.length > 0) {",
+                                    "            pm.environment.set('address_id', jsonData.customer.address[0]._id);",
+                                    "        }",
+                                    "    });",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"text\": \"{{new_address}}\",\n    \"isDefault\": false\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/customers/{{customer_id}}/addresses",
+                            "host": ["{{base_url}}"],
+                            "path": ["customers", "{{customer_id}}", "addresses"]
+                        },
+                        "description": "Add a new address to a customer.\n\n**Requires:** Admin, Manager, or Customer role\n\n**Required Fields:**\n- text: Address text\n- isDefault: Set as default address (boolean)\n\n**Note:** If isDefault is true, all other addresses will be set to non-default\n\n**Response:** Returns updated customer object with all addresses"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update Address",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    pm.test('Address updated successfully', function() {",
+                                    "        pm.response.to.have.status(200);",
+                                    "    });",
+                                    "    ",
+                                    "    pm.test('Response has customer object', function() {",
+                                    "        var jsonData = pm.response.json();",
+                                    "        pm.expect(jsonData).to.have.property('customer');",
+                                    "    });",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"text\": \"789 Updated Avenue, City, Country\",\n    \"isDefault\": true\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/customers/{{customer_id}}/addresses/{{address_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["customers", "{{customer_id}}", "addresses", "{{address_id}}"]
+                        },
+                        "description": "Update a specific address.\n\n**Requires:** Admin, Manager, or Customer role\n\n**Optional Fields:**\n- text: New address text\n- isDefault: Set as default address\n\n**Note:** If isDefault is set to true, all other addresses will be set to non-default\n\n**Response:** Returns updated customer object"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Delete Address",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    pm.test('Address deleted successfully', function() {",
+                                    "        pm.response.to.have.status(200);",
+                                    "    });",
+                                    "    ",
+                                    "    pm.test('Response has customer object', function() {",
+                                    "        var jsonData = pm.response.json();",
+                                    "        pm.expect(jsonData).to.have.property('customer');",
+                                    "    });",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/customers/{{customer_id}}/addresses/{{address_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["customers", "{{customer_id}}", "addresses", "{{address_id}}"]
+                        },
+                        "description": "Delete a specific address from a customer.\n\n**Requires:** Admin, Manager, or Customer role\n\n**Response:** Returns updated customer object without the deleted address"
+                    },
+                    "response": []
                 }
             ],
             "description": "Customer management endpoints.\n\n**Authentication required for all endpoints**"

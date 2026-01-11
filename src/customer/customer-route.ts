@@ -14,6 +14,9 @@ import { Roles } from "../common/constants/roles";
 import idParamValidator from "./id-param-validator";
 import customerValidator from "./customer-validator";
 import updateCustomerValidator from "./update-customer-validator";
+import addressValidator from "./address-validator";
+import updateAddressValidator from "./update-address-validator";
+import addressIdParamValidator from "./address-id-param-validator";
 
 const router = Router();
 
@@ -68,6 +71,39 @@ router.delete(
     idParamValidator,
     asyncHandler((req: Request, res: Response, next: NextFunction) =>
         customerController.delete(req, res, next)
+    )
+);
+
+// Address management routes
+router.post(
+    "/:id/addresses",
+    authenticate,
+    authorize([Roles.ADMIN, Roles.MANAGER, Roles.CUSTOMER]),
+    idParamValidator,
+    addressValidator,
+    asyncHandler((req: Request, res: Response, next: NextFunction) =>
+        customerController.addAddress(req, res, next)
+    )
+);
+
+router.put(
+    "/:id/addresses/:addressId",
+    authenticate,
+    authorize([Roles.ADMIN, Roles.MANAGER, Roles.CUSTOMER]),
+    addressIdParamValidator,
+    updateAddressValidator,
+    asyncHandler((req: Request, res: Response, next: NextFunction) =>
+        customerController.updateAddress(req, res, next)
+    )
+);
+
+router.delete(
+    "/:id/addresses/:addressId",
+    authenticate,
+    authorize([Roles.ADMIN, Roles.MANAGER, Roles.CUSTOMER]),
+    addressIdParamValidator,
+    asyncHandler((req: Request, res: Response, next: NextFunction) =>
+        customerController.deleteAddress(req, res, next)
     )
 );
 

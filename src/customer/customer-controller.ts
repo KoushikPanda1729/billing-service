@@ -199,4 +199,137 @@ export class CustomerController {
             customer,
         });
     }
+
+    async addAddress(
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ): Promise<void> {
+        const result = validationResult(req);
+        if (!result.isEmpty()) {
+            return next(
+                createHttpError(400, "Validation Error", {
+                    errors: result.array(),
+                })
+            );
+        }
+
+        const { id } = req.params;
+        const { text, isDefault } = req.body as {
+            text: string;
+            isDefault: boolean;
+        };
+
+        if (!id) {
+            return next(createHttpError(400, "Customer ID is required"));
+        }
+
+        const customer = await this.customerService.addAddress(id, {
+            text,
+            isDefault,
+        });
+
+        if (!customer) {
+            return next(createHttpError(404, "Customer not found"));
+        }
+
+        this.logger.info("Address added successfully to customer: " + id);
+        res.status(200).json({
+            message: "Address added successfully",
+            customer,
+        });
+    }
+
+    async updateAddress(
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ): Promise<void> {
+        const result = validationResult(req);
+        if (!result.isEmpty()) {
+            return next(
+                createHttpError(400, "Validation Error", {
+                    errors: result.array(),
+                })
+            );
+        }
+
+        const { id, addressId } = req.params;
+        const addressData = req.body as {
+            text?: string;
+            isDefault?: boolean;
+        };
+
+        if (!id || !addressId) {
+            return next(
+                createHttpError(400, "Customer ID and Address ID are required")
+            );
+        }
+
+        const updateData: { text?: string; isDefault?: boolean } = {};
+        if (addressData.text !== undefined) {
+            updateData.text = addressData.text;
+        }
+        if (addressData.isDefault !== undefined) {
+            updateData.isDefault = addressData.isDefault;
+        }
+
+        const customer = await this.customerService.updateAddress(
+            id,
+            addressId,
+            updateData
+        );
+
+        if (!customer) {
+            return next(createHttpError(404, "Customer or address not found"));
+        }
+
+        this.logger.info(
+            `Address ${addressId} updated successfully for customer: ${id}`
+        );
+        res.status(200).json({
+            message: "Address updated successfully",
+            customer,
+        });
+    }
+
+    async deleteAddress(
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ): Promise<void> {
+        const result = validationResult(req);
+        if (!result.isEmpty()) {
+            return next(
+                createHttpError(400, "Validation Error", {
+                    errors: result.array(),
+                })
+            );
+        }
+
+        const { id, addressId } = req.params;
+
+        if (!id || !addressId) {
+            return next(
+                createHttpError(400, "Customer ID and Address ID are required")
+            );
+        }
+
+        const customer = await this.customerService.deleteAddress(
+            id,
+            addressId
+        );
+
+        if (!customer) {
+            return next(createHttpError(404, "Customer or address not found"));
+        }
+
+        this.logger.info(
+            `Address ${addressId} deleted successfully for customer: ${id}`
+        );
+        res.status(200).json({
+            message: "Address deleted successfully",
+            customer,
+        });
+    }
 }

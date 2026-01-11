@@ -67,4 +67,72 @@ export class CustomerService {
         const customer = await CustomerModel.findByIdAndDelete(customerId);
         return customer;
     }
+
+    async addAddress(
+        customerId: string,
+        addressData: { text: string; isDefault: boolean }
+    ) {
+        if (!mongoose.isValidObjectId(customerId)) {
+            return null;
+        }
+
+        // If this address is set as default, unset all other defaults
+        if (addressData.isDefault) {
+            await CustomerModel.findByIdAndUpdate(customerId, {
+                $set: { "address.$[].isDefault": false },
+            });
+        }
+
+        const customer = await CustomerModel.findByIdAndUpdate(
+            customerId,
+            { $push: { address: addressData } },
+            { new: true, runValidators: true }
+        );
+        return customer;
+    }
+
+    async updateAddress(
+        customerId: string,
+        addressId: string,
+        addressData: { text?: string; isDefault?: boolean }
+    ) {
+        if (!mongoose.isValidObjectId(customerId)) {
+            return null;
+        }
+
+        // If setting as default, unset all other defaults first
+        if (addressData.isDefault) {
+            await CustomerModel.findByIdAndUpdate(customerId, {
+                $set: { "address.$[].isDefault": false },
+            });
+        }
+
+        const updateFields: Record<string, unknown> = {};
+        if (addressData.text !== undefined) {
+            updateFields["address.$.text"] = addressData.text;
+        }
+        if (addressData.isDefault !== undefined) {
+            updateFields["address.$.isDefault"] = addressData.isDefault;
+        }
+
+        const customer = await CustomerModel.findOneAndUpdate(
+            { _id: customerId, "address._id": addressId },
+            { $set: updateFields },
+            { new: true, runValidators: true }
+        );
+        return customer;
+    }
+
+    async deleteAddress(customerId: string, addressId: string) {
+        if (!mongoose.isValidObjectId(customerId)) {
+            return null;
+        }
+
+        const customer = await CustomerModel.findByIdAndUpdate(
+            customerId,
+            { $pull: { address: { _id: addressId } } },
+            { new: true }
+        );
+        return customer;
+    }
 }
