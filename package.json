@@ -1,0 +1,56 @@
+{
+    "name": "auth-service",
+    "version": "1.0.0",
+    "description": "The user management service ",
+    "main": "index.js",
+    "type": "module",
+    "scripts": {
+        "dev": "nodemon --exec tsx src/server.ts",
+        "format:fix": "npx prettier . --write \"src/**/*.ts\"",
+        "format:check": "npx prettier . --check \"src/**/*.ts\"",
+        "lint:fix": "npx eslint . --fix \"src/**/*.ts\"",
+        "lint:check": "npx eslint . \"src/**/*.ts\"",
+        "test": "jest --watch --runInBand",
+        "prepare": "husky"
+    },
+    "keywords": [
+        "Auth",
+        "service"
+    ],
+    "author": "Koushik",
+    "license": "ISC",
+    "devDependencies": {
+        "@eslint/js": "^9.39.1",
+        "@types/express": "^5.0.6",
+        "@types/http-errors": "^2.0.5",
+        "@types/jest": "^30.0.0",
+        "@types/mocha": "^10.0.10",
+        "@types/node": "^24.10.1",
+        "@types/supertest": "^6.0.3",
+        "@types/winston": "^2.4.4",
+        "eslint": "^9.39.1",
+        "husky": "^9.1.7",
+        "jest": "^30.2.0",
+        "lint-staged": "^16.2.7",
+        "nodemon": "^3.1.11",
+        "prettier": "3.7.4",
+        "ts-jest": "^29.4.6",
+        "ts-node": "^10.9.2",
+        "tsx": "^4.21.0",
+        "typescript": "^5.9.3",
+        "typescript-eslint": "^8.48.1"
+    },
+    "lint-staged": {
+        "*.ts": [
+            "npm run format:fix",
+            "npm run lint:fix"
+        ]
+    },
+    "dependencies": {
+        "dotenv": "^17.2.3",
+        "express": "^5.2.1",
+        "http-errors": "^2.0.1",
+        "supertest": "^7.1.4",
+        "winston": "^3.18.3"
+    }
+}
