@@ -280,7 +280,11 @@
                         "url": {
                             "raw": "{{base_url}}/customers/{{customer_id}}/addresses",
                             "host": ["{{base_url}}"],
-                            "path": ["customers", "{{customer_id}}", "addresses"]
+                            "path": [
+                                "customers",
+                                "{{customer_id}}",
+                                "addresses"
+                            ]
                         },
                         "description": "Add a new address to a customer.\n\n**Requires:** Admin, Manager, or Customer role\n\n**Required Fields:**\n- text: Address text\n- isDefault: Set as default address (boolean)\n\n**Note:** If isDefault is true, all other addresses will be set to non-default\n\n**Response:** Returns updated customer object with all addresses"
                     },
@@ -323,7 +327,12 @@
                         "url": {
                             "raw": "{{base_url}}/customers/{{customer_id}}/addresses/{{address_id}}",
                             "host": ["{{base_url}}"],
-                            "path": ["customers", "{{customer_id}}", "addresses", "{{address_id}}"]
+                            "path": [
+                                "customers",
+                                "{{customer_id}}",
+                                "addresses",
+                                "{{address_id}}"
+                            ]
                         },
                         "description": "Update a specific address.\n\n**Requires:** Admin, Manager, or Customer role\n\n**Optional Fields:**\n- text: New address text\n- isDefault: Set as default address\n\n**Note:** If isDefault is set to true, all other addresses will be set to non-default\n\n**Response:** Returns updated customer object"
                     },
@@ -357,7 +366,12 @@
                         "url": {
                             "raw": "{{base_url}}/customers/{{customer_id}}/addresses/{{address_id}}",
                             "host": ["{{base_url}}"],
-                            "path": ["customers", "{{customer_id}}", "addresses", "{{address_id}}"]
+                            "path": [
+                                "customers",
+                                "{{customer_id}}",
+                                "addresses",
+                                "{{address_id}}"
+                            ]
                         },
                         "description": "Delete a specific address from a customer.\n\n**Requires:** Admin, Manager, or Customer role\n\n**Response:** Returns updated customer object without the deleted address"
                     },
