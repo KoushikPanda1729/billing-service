@@ -25,7 +25,7 @@ export class CustomerController {
             );
         }
 
-        const { address } = req.body as Pick<Customer, "address">;
+        const { address } = req.body as { address?: Customer["address"] };
 
         // Get user data from JWT token
         const userId = String(req.user?.sub);
@@ -45,7 +45,7 @@ export class CustomerController {
                 firstName,
                 lastName,
                 email,
-                address,
+                address: address || [], // Default to empty array if not provided
                 createdAt: new Date(),
                 updatedAt: new Date(),
             });
@@ -71,6 +71,15 @@ export class CustomerController {
         }
     }
 
+    /**
+     * Update customer profile (firstName, lastName, email, userId only)
+     *
+     * IMPORTANT: This endpoint does NOT update addresses.
+     * Use dedicated address endpoints for address management:
+     * - POST /customers/:id/addresses (add)
+     * - PUT /customers/:id/addresses/:addressId (update)
+     * - DELETE /customers/:id/addresses/:addressId (delete)
+     */
     async update(
         req: Request,
         res: Response,
@@ -91,9 +100,44 @@ export class CustomerController {
             return next(createHttpError(400, "Customer ID is required"));
         }
 
-        const updateData = req.body as Partial<Customer>;
+        const updateData = req.body as Partial<
+            Pick<Customer, "userId" | "firstName" | "lastName" | "email">
+        >;
 
-        const customer = await this.customerService.update(id, updateData);
+        // Get existing customer to check for changes
+        const existingCustomer = await this.customerService.getById(id);
+        if (!existingCustomer) {
+            return next(createHttpError(404, "Customer not found"));
+        }
+
+        // Check if any field is actually changing
+        const hasChanges =
+            (updateData.userId &&
+                updateData.userId !== existingCustomer.userId) ||
+            (updateData.firstName &&
+                updateData.firstName !== existingCustomer.firstName) ||
+            (updateData.lastName &&
+                updateData.lastName !== existingCustomer.lastName) ||
+            (updateData.email && updateData.email !== existingCustomer.email);
+
+        if (!hasChanges) {
+            return res.status(200).json({
+                message:
+                    "No changes detected. Customer data is already up to date.",
+                customer: existingCustomer,
+            });
+        }
+
+        // Explicitly prevent address updates through this endpoint
+        // Addresses should ONLY be managed through dedicated address APIs
+        const safeUpdateData: Partial<Customer> = {
+            ...(updateData.userId && { userId: updateData.userId }),
+            ...(updateData.firstName && { firstName: updateData.firstName }),
+            ...(updateData.lastName && { lastName: updateData.lastName }),
+            ...(updateData.email && { email: updateData.email }),
+        };
+
+        const customer = await this.customerService.update(id, safeUpdateData);
 
         if (!customer) {
             return next(createHttpError(404, "Customer not found"));
@@ -224,20 +268,35 @@ export class CustomerController {
             return next(createHttpError(400, "Customer ID is required"));
         }
 
-        const customer = await this.customerService.addAddress(id, {
-            text,
-            isDefault,
-        });
+        try {
+            const customer = await this.customerService.addAddress(id, {
+                text,
+                isDefault,
+            });
 
-        if (!customer) {
-            return next(createHttpError(404, "Customer not found"));
+            if (!customer) {
+                return next(createHttpError(404, "Customer not found"));
+            }
+
+            this.logger.info("Address added successfully to customer: " + id);
+            res.status(200).json({
+                message: "Address added successfully",
+                customer,
+            });
+        } catch (error) {
+            if (
+                error instanceof Error &&
+                error.message === "Address already exists"
+            ) {
+                return next(
+                    createHttpError(
+                        409,
+                        "This address already exists for this customer"
+                    )
+                );
+            }
+            throw error;
         }
-
-        this.logger.info("Address added successfully to customer: " + id);
-        res.status(200).json({
-            message: "Address added successfully",
-            customer,
-        });
     }
 
     async updateAddress(
@@ -274,23 +333,40 @@ export class CustomerController {
             updateData.isDefault = addressData.isDefault;
         }
 
-        const customer = await this.customerService.updateAddress(
-            id,
-            addressId,
-            updateData
-        );
+        try {
+            const customer = await this.customerService.updateAddress(
+                id,
+                addressId,
+                updateData
+            );
 
-        if (!customer) {
-            return next(createHttpError(404, "Customer or address not found"));
+            if (!customer) {
+                return next(
+                    createHttpError(404, "Customer or address not found")
+                );
+            }
+
+            this.logger.info(
+                `Address ${addressId} updated successfully for customer: ${id}`
+            );
+            res.status(200).json({
+                message: "Address updated successfully",
+                customer,
+            });
+        } catch (error) {
+            if (
+                error instanceof Error &&
+                error.message === "Address already exists"
+            ) {
+                return next(
+                    createHttpError(
+                        409,
+                        "This address already exists for this customer"
+                    )
+                );
+            }
+            throw error;
         }
-
-        this.logger.info(
-            `Address ${addressId} updated successfully for customer: ${id}`
-        );
-        res.status(200).json({
-            message: "Address updated successfully",
-            customer,
-        });
     }
 
     async deleteAddress(

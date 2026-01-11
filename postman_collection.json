@@ -149,14 +149,14 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"address\": [\n        {\n            \"text\": \"{{customer_address}}\",\n            \"isDefault\": true\n        }\n    ]\n}"
+                            "raw": "{}"
                         },
                         "url": {
                             "raw": "{{base_url}}/customers",
                             "host": ["{{base_url}}"],
                             "path": ["customers"]
                         },
-                        "description": "Create a new customer.\n\n**Requires:** Admin, Manager, or Customer role\n\n**User Data from Token:**\n- userId, firstName, lastName, email are automatically extracted from JWT token\n\n**Required Fields:**\n- address (array of address objects)\n\n**Response:** Returns created customer object"
+                        "description": "Create a new customer profile.\n\n**Requires:** Admin, Manager, or Customer role\n\n**User Data from Token:**\n- userId, firstName, lastName, email are automatically extracted from JWT token\n\n**Optional Fields:**\n- address (array of address objects) - Can be added later via address APIs\n\n**Recommended Flow:**\n1. Create customer (no address needed)\n2. User can browse/use the app\n3. Add address later via POST /customers/:id/addresses when needed (e.g., at checkout)\n\n**Response:** Returns created customer object"
                     },
                     "response": []
                 },
@@ -192,14 +192,14 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"firstName\": \"Updated\",\n    \"lastName\": \"Customer\",\n    \"address\": [\n        {\n            \"text\": \"456 New Street, City, Country\",\n            \"isDefault\": true\n        }\n    ]\n}"
+                            "raw": "{\n    \"firstName\": \"Updated\",\n    \"lastName\": \"Customer\"\n}"
                         },
                         "url": {
                             "raw": "{{base_url}}/customers/{{customer_id}}",
                             "host": ["{{base_url}}"],
                             "path": ["customers", "{{customer_id}}"]
                         },
-                        "description": "Update customer information.\n\n**Requires:** Admin, Manager, or Customer role\n\n**Updatable Fields:**\n- firstName\n- lastName\n- email\n- address\n\n**Response:** Returns updated customer object"
+                        "description": "Update customer profile information.\n\n**Requires:** Admin, Manager, or Customer role\n\n**Allowed Fields:**\n- firstName\n- lastName\n- email\n- userId\n\n**Smart Update Validation:**\n- If no fields are changed, returns 200 with message \"No changes detected\"\n- Only updates if at least one field is different from current value\n- Prevents unnecessary database operations\n\n**IMPORTANT - Address Field NOT Allowed:**\nThis endpoint will REJECT requests that include the 'address' field.\n\n**To manage addresses, use these dedicated endpoints:**\n- POST /customers/:id/addresses (add new address)\n- PUT /customers/:id/addresses/:addressId (update existing address)\n- DELETE /customers/:id/addresses/:addressId (delete address)\n\n**Response:** Returns updated customer object"
                     },
                     "response": []
                 },
@@ -286,7 +286,7 @@
                                 "addresses"
                             ]
                         },
-                        "description": "Add a new address to a customer.\n\n**Requires:** Admin, Manager, or Customer role\n\n**Required Fields:**\n- text: Address text\n- isDefault: Set as default address (boolean)\n\n**Note:** If isDefault is true, all other addresses will be set to non-default\n\n**Response:** Returns updated customer object with all addresses"
+                        "description": "Add a new address to a customer.\n\n**Requires:** Admin, Manager, or Customer role\n\n**Required Fields:**\n- text: Address text\n- isDefault: Set as default address (boolean)\n\n**Validation:**\n- Duplicate addresses are NOT allowed (case-insensitive)\n- Returns 409 Conflict if address already exists\n\n**Note:** If isDefault is true, all other addresses will be set to non-default\n\n**Response:** Returns updated customer object with all addresses"
                     },
                     "response": []
                 },
@@ -334,7 +334,7 @@
                                 "{{address_id}}"
                             ]
                         },
-                        "description": "Update a specific address.\n\n**Requires:** Admin, Manager, or Customer role\n\n**Optional Fields:**\n- text: New address text\n- isDefault: Set as default address\n\n**Note:** If isDefault is set to true, all other addresses will be set to non-default\n\n**Response:** Returns updated customer object"
+                        "description": "Update a specific address.\n\n**Requires:** Admin, Manager, or Customer role\n\n**Optional Fields:**\n- text: New address text\n- isDefault: Set as default address\n\n**Validation:**\n- Cannot update to a duplicate address (case-insensitive)\n- Returns 409 Conflict if updated address text already exists in another address\n\n**Note:** If isDefault is set to true, all other addresses will be set to non-default\n\n**Response:** Returns updated customer object"
                     },
                     "response": []
                 },

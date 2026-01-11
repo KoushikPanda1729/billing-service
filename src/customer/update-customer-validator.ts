@@ -27,18 +27,9 @@ export default [
         .withMessage("Invalid email format")
         .normalizeEmail(),
     body("address")
-        .optional()
-        .isArray({ min: 1 })
-        .withMessage("Address must be an array with at least one address"),
-    body("address.*.text")
-        .optional()
-        .isString()
-        .withMessage("Address text must be a string")
-        .trim()
-        .notEmpty()
-        .withMessage("Address text cannot be empty"),
-    body("address.*.isDefault")
-        .optional()
-        .isBoolean()
-        .withMessage("isDefault must be a boolean"),
+        .not()
+        .exists()
+        .withMessage(
+            "Address updates not allowed here. Use POST/PUT/DELETE /customers/:id/addresses endpoints"
+        ),
 ];

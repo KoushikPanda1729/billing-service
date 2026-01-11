@@ -13,7 +13,7 @@ const customerSchema = new mongoose.Schema<Customer>(
         firstName: { type: String, required: true },
         lastName: { type: String, required: true },
         email: { type: String, required: true },
-        address: { type: [addressSchema], required: true },
+        address: { type: [addressSchema], default: [] },
     },
     {
         timestamps: true,

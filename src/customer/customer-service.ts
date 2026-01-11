@@ -76,6 +76,22 @@ export class CustomerService {
             return null;
         }
 
+        // Check if address with same text already exists
+        const existingCustomer = await CustomerModel.findById(customerId);
+        if (!existingCustomer) {
+            return null;
+        }
+
+        const addressExists = existingCustomer.address.some(
+            (addr) =>
+                addr.text.toLowerCase().trim() ===
+                addressData.text.toLowerCase().trim()
+        );
+
+        if (addressExists) {
+            throw new Error("Address already exists");
+        }
+
         // If this address is set as default, unset all other defaults
         if (addressData.isDefault) {
             await CustomerModel.findByIdAndUpdate(customerId, {
@@ -98,6 +114,25 @@ export class CustomerService {
     ) {
         if (!mongoose.isValidObjectId(customerId)) {
             return null;
+        }
+
+        // If updating text, check if another address with same text already exists
+        if (addressData.text) {
+            const existingCustomer = await CustomerModel.findById(customerId);
+            if (!existingCustomer) {
+                return null;
+            }
+
+            const duplicateExists = existingCustomer.address.some(
+                (addr) =>
+                    String(addr._id) !== addressId &&
+                    addr.text.toLowerCase().trim() ===
+                        addressData.text?.toLowerCase().trim()
+            );
+
+            if (duplicateExists) {
+                throw new Error("Address already exists");
+            }
         }
 
         // If setting as default, unset all other defaults first
