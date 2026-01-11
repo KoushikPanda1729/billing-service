@@ -1,7 +1,7 @@
 {
-    "name": "auth-service",
+    "name": "billing-service",
     "version": "1.0.0",
-    "description": "The user management service ",
+    "description": "The billing service for managing transactions",
     "main": "index.js",
     "type": "module",
     "scripts": {
@@ -47,6 +47,8 @@
         ]
     },
     "dependencies": {
+        "@types/config": "^3.3.5",
+        "config": "^4.1.1",
         "dotenv": "^17.2.3",
         "express": "^5.2.1",
         "http-errors": "^2.0.1",
