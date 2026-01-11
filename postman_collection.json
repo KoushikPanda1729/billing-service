@@ -1,0 +1,251 @@
+{
+    "info": {
+        "_postman_id": "billing-service-collection",
+        "name": "Billing Service",
+        "description": "Billing service API for customer management with JWT authentication.",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Health & Info",
+            "item": [
+                {
+                    "name": "Root Endpoint",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/",
+                            "host": ["{{base_url}}"],
+                            "path": [""]
+                        },
+                        "description": "Welcome message from the billing service"
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Customer Management",
+            "item": [
+                {
+                    "name": "Get All Customers",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    pm.test('Customers list retrieved', function() {",
+                                    "        pm.response.to.have.status(200);",
+                                    "    });",
+                                    "    ",
+                                    "    pm.test('Response has customers array', function() {",
+                                    "        var jsonData = pm.response.json();",
+                                    "        pm.expect(jsonData).to.have.property('data');",
+                                    "        pm.expect(jsonData.data).to.be.an('array');",
+                                    "    });",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/customers?page={{page}}&limit={{limit}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["customers"],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "{{page}}"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "{{limit}}"
+                                },
+                                {
+                                    "key": "q",
+                                    "value": "",
+                                    "disabled": true
+                                }
+                            ]
+                        },
+                        "description": "Get all customers with pagination.\n\n**Requires:** Admin or Manager role\n\n**Query Parameters:**\n- page: Page number (default: 1)\n- limit: Items per page (default: 10)\n- q: Search query (optional)\n\n**Response:** Array of customers with pagination metadata"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Customer by ID",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    pm.test('Customer retrieved successfully', function() {",
+                                    "        pm.response.to.have.status(200);",
+                                    "    });",
+                                    "    ",
+                                    "    pm.test('Customer has required fields', function() {",
+                                    "        var jsonData = pm.response.json();",
+                                    "        pm.expect(jsonData.customer).to.have.property('userId');",
+                                    "        pm.expect(jsonData.customer).to.have.property('firstName');",
+                                    "        pm.expect(jsonData.customer).to.have.property('lastName');",
+                                    "        pm.expect(jsonData.customer).to.have.property('email');",
+                                    "        pm.expect(jsonData.customer).to.have.property('address');",
+                                    "    });",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/customers/{{customer_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["customers", "{{customer_id}}"]
+                        },
+                        "description": "Get a specific customer by ID.\n\n**Requires:** Admin, Manager, or Customer role\n\n**Returns:** Customer details"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Create Customer",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 201) {",
+                                    "    pm.test('Customer created successfully', function() {",
+                                    "        pm.response.to.have.status(201);",
+                                    "    });",
+                                    "    ",
+                                    "    pm.test('Response has customer object', function() {",
+                                    "        var jsonData = pm.response.json();",
+                                    "        pm.expect(jsonData).to.have.property('customer');",
+                                    "        pm.environment.set('customer_id', jsonData.customer._id);",
+                                    "    });",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"address\": [\n        {\n            \"text\": \"{{customer_address}}\",\n            \"isDefault\": true\n        }\n    ]\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/customers",
+                            "host": ["{{base_url}}"],
+                            "path": ["customers"]
+                        },
+                        "description": "Create a new customer.\n\n**Requires:** Admin, Manager, or Customer role\n\n**User Data from Token:**\n- userId, firstName, lastName, email are automatically extracted from JWT token\n\n**Required Fields:**\n- address (array of address objects)\n\n**Response:** Returns created customer object"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update Customer",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    pm.test('Customer updated successfully', function() {",
+                                    "        pm.response.to.have.status(200);",
+                                    "    });",
+                                    "    ",
+                                    "    pm.test('Response has customer object', function() {",
+                                    "        var jsonData = pm.response.json();",
+                                    "        pm.expect(jsonData).to.have.property('customer');",
+                                    "    });",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"firstName\": \"Updated\",\n    \"lastName\": \"Customer\",\n    \"address\": [\n        {\n            \"text\": \"456 New Street, City, Country\",\n            \"isDefault\": true\n        }\n    ]\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/customers/{{customer_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["customers", "{{customer_id}}"]
+                        },
+                        "description": "Update customer information.\n\n**Requires:** Admin, Manager, or Customer role\n\n**Updatable Fields:**\n- firstName\n- lastName\n- email\n- address\n\n**Response:** Returns updated customer object"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Delete Customer",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    pm.test('Customer deleted successfully', function() {",
+                                    "        pm.response.to.have.status(200);",
+                                    "    });",
+                                    "    ",
+                                    "    pm.test('Response has customer object', function() {",
+                                    "        var jsonData = pm.response.json();",
+                                    "        pm.expect(jsonData).to.have.property('customer');",
+                                    "    });",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/customers/{{customer_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["customers", "{{customer_id}}"]
+                        },
+                        "description": "Delete a customer.\n\n**Requires:** Admin or Manager role\n\n**Response:** Returns deleted customer object"
+                    },
+                    "response": []
+                }
+            ],
+            "description": "Customer management endpoints.\n\n**Authentication required for all endpoints**"
+        }
+    ],
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http://localhost:5503",
+            "type": "string"
+        }
+    ]
+}
