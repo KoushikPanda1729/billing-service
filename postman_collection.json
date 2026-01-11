@@ -379,6 +379,265 @@
                 }
             ],
             "description": "Customer management endpoints.\n\n**Authentication required for all endpoints**"
+        },
+        {
+            "name": "Coupon Management",
+            "item": [
+                {
+                    "name": "Get All Coupons",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    pm.test('Coupons list retrieved', function() {",
+                                    "        pm.response.to.have.status(200);",
+                                    "    });",
+                                    "    ",
+                                    "    pm.test('Response has coupons array', function() {",
+                                    "        var jsonData = pm.response.json();",
+                                    "        pm.expect(jsonData).to.have.property('data');",
+                                    "        pm.expect(jsonData.data).to.be.an('array');",
+                                    "    });",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/coupons?page={{page}}&limit={{limit}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["coupons"],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "{{page}}"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "{{limit}}"
+                                },
+                                {
+                                    "key": "q",
+                                    "value": "",
+                                    "disabled": true
+                                }
+                            ]
+                        },
+                        "description": "Get all coupons with pagination.\n\n**Requires:** Admin or Manager role\n\n**Query Parameters:**\n- page: Page number (default: 1)\n- limit: Items per page (default: 10)\n- q: Search query (searches in title and code)\n\n**Authorization Logic:**\n- Admin: Can see coupons from all tenants\n- Manager: Can only see coupons from their tenant (auto-filtered)\n\n**Response:** Array of coupons with pagination metadata"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Coupon by ID",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    pm.test('Coupon retrieved successfully', function() {",
+                                    "        pm.response.to.have.status(200);",
+                                    "    });",
+                                    "    ",
+                                    "    pm.test('Coupon has required fields', function() {",
+                                    "        var jsonData = pm.response.json();",
+                                    "        pm.expect(jsonData.coupon).to.have.property('title');",
+                                    "        pm.expect(jsonData.coupon).to.have.property('code');",
+                                    "        pm.expect(jsonData.coupon).to.have.property('discount');",
+                                    "        pm.expect(jsonData.coupon).to.have.property('validUpto');",
+                                    "        pm.expect(jsonData.coupon).to.have.property('tenantId');",
+                                    "    });",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/coupons/{{coupon_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["coupons", "{{coupon_id}}"]
+                        },
+                        "description": "Get a specific coupon by ID.\n\n**Requires:** Admin or Manager role\n\n**Authorization Logic:**\n- Admin: Can view any coupon\n- Manager: Can only view coupons from their tenant\n\n**Returns:** Coupon details"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Create Coupon (Admin)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 201) {",
+                                    "    pm.test('Coupon created successfully', function() {",
+                                    "        pm.response.to.have.status(201);",
+                                    "    });",
+                                    "    ",
+                                    "    pm.test('Response has coupon object', function() {",
+                                    "        var jsonData = pm.response.json();",
+                                    "        pm.expect(jsonData).to.have.property('coupon');",
+                                    "        pm.environment.set('coupon_id', jsonData.coupon._id);",
+                                    "    });",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"title\": \"Enjoy 10% Off\",\n    \"code\": \"ENJOY_10\",\n    \"discount\": 10,\n    \"validUpto\": \"2026-12-31\",\n    \"tenantId\": \"1\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/coupons",
+                            "host": ["{{base_url}}"],
+                            "path": ["coupons"]
+                        },
+                        "description": "Create a new coupon (Admin version).\n\n**Requires:** Admin role\n\n**Required Fields:**\n- title: Coupon title/description\n- code: Coupon code (case-insensitive, alphanumeric + underscores only)\n- discount: Percentage discount (0-100)\n- validUpto: Expiration date (must be in future)\n- tenantId: Tenant ID (REQUIRED for admin)\n\n**Code Format:**\n- Codes are case-insensitive (ENJOY_10, enjoy_10, Enjoy_10 are all the same)\n- Automatically converted to lowercase on save\n- Must be unique per tenant\n\n**Admin Authorization:**\n- Admin MUST provide tenantId in request body\n- Can create coupons for any tenant\n\n**Response:** Returns created coupon object"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Create Coupon (Manager)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 201) {",
+                                    "    pm.test('Coupon created successfully', function() {",
+                                    "        pm.response.to.have.status(201);",
+                                    "    });",
+                                    "    ",
+                                    "    pm.test('Response has coupon object', function() {",
+                                    "        var jsonData = pm.response.json();",
+                                    "        pm.expect(jsonData).to.have.property('coupon');",
+                                    "        pm.environment.set('coupon_id', jsonData.coupon._id);",
+                                    "    });",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"title\": \"Summer Sale 20% Off\",\n    \"code\": \"SUMMER_20\",\n    \"discount\": 20,\n    \"validUpto\": \"2026-08-31\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/coupons",
+                            "host": ["{{base_url}}"],
+                            "path": ["coupons"]
+                        },
+                        "description": "Create a new coupon (Manager version).\n\n**Requires:** Manager role\n\n**Required Fields:**\n- title: Coupon title/description\n- code: Coupon code (case-insensitive, alphanumeric + underscores only)\n- discount: Percentage discount (0-100)\n- validUpto: Expiration date (must be in future)\n\n**Manager Authorization:**\n- Manager DOES NOT provide tenantId (automatically uses their tenant from JWT token)\n- Can only create coupons for their own tenant\n\n**Code Format:**\n- Codes are case-insensitive (SUMMER_20, summer_20, Summer_20 are all the same)\n- Automatically converted to lowercase on save\n- Must be unique per tenant\n\n**Response:** Returns created coupon object"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update Coupon",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    pm.test('Coupon updated successfully', function() {",
+                                    "        pm.response.to.have.status(200);",
+                                    "    });",
+                                    "    ",
+                                    "    pm.test('Response has coupon object', function() {",
+                                    "        var jsonData = pm.response.json();",
+                                    "        pm.expect(jsonData).to.have.property('coupon');",
+                                    "    });",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"title\": \"Updated Title - Mega Sale\",\n    \"discount\": 25\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/coupons/{{coupon_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["coupons", "{{coupon_id}}"]
+                        },
+                        "description": "Update coupon information.\n\n**Requires:** Admin or Manager role\n\n**Optional Fields:**\n- title: Updated title\n- code: Updated code (case-insensitive)\n- discount: Updated discount percentage (0-100)\n- validUpto: Updated expiration date (must be in future)\n\n**Authorization Logic:**\n- Admin: Can update any coupon\n- Manager: Can only update coupons from their tenant\n\n**Validation:**\n- If updating code, checks for duplicates within the same tenant\n- Code is automatically converted to lowercase\n\n**Response:** Returns updated coupon object"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Delete Coupon",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    pm.test('Coupon deleted successfully', function() {",
+                                    "        pm.response.to.have.status(200);",
+                                    "    });",
+                                    "    ",
+                                    "    pm.test('Response has coupon object', function() {",
+                                    "        var jsonData = pm.response.json();",
+                                    "        pm.expect(jsonData).to.have.property('coupon');",
+                                    "    });",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/coupons/{{coupon_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["coupons", "{{coupon_id}}"]
+                        },
+                        "description": "Delete a coupon.\n\n**Requires:** Admin or Manager role\n\n**Authorization Logic:**\n- Admin: Can delete any coupon\n- Manager: Can only delete coupons from their tenant\n\n**Response:** Returns deleted coupon object"
+                    },
+                    "response": []
+                }
+            ],
+            "description": "Coupon management endpoints.\n\n**Key Features:**\n- Case-insensitive coupon codes (ENJOY_10 = enjoy_10)\n- Admin can manage coupons for any tenant (must provide tenantId)\n- Manager can only manage coupons for their tenant (tenantId from JWT)\n- Duplicate code validation per tenant\n\n**Authentication required for all endpoints**"
         }
     ],
     "variable": [

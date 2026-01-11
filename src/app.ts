@@ -7,6 +7,7 @@ import cors from "cors";
 import logger from "./config/logger";
 import type { HttpError } from "http-errors";
 import customerRouter from "./customer/customer-route";
+import couponRouter from "./coupon/coupon-route";
 import cookieParser from "cookie-parser";
 
 const app = express();
@@ -25,6 +26,7 @@ app.get("/", (_req: Request, res: Response) => {
 });
 
 app.use("/customers", customerRouter);
+app.use("/coupons", couponRouter);
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 app.use((err: HttpError, _req: Request, res: Response, _next: NextFunction) => {

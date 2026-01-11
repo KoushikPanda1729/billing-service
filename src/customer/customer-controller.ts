@@ -121,11 +121,12 @@ export class CustomerController {
             (updateData.email && updateData.email !== existingCustomer.email);
 
         if (!hasChanges) {
-            return res.status(200).json({
+            res.status(200).json({
                 message:
                     "No changes detected. Customer data is already up to date.",
                 customer: existingCustomer,
             });
+            return;
         }
 
         // Explicitly prevent address updates through this endpoint

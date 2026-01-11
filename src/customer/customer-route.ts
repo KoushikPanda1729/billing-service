@@ -17,10 +17,11 @@ import updateCustomerValidator from "./update-customer-validator";
 import addressValidator from "./address-validator";
 import updateAddressValidator from "./update-address-validator";
 import addressIdParamValidator from "./address-id-param-validator";
+import CustomerModel from "./customer-model";
 
 const router = Router();
 
-const customerService = new CustomerService();
+const customerService = new CustomerService(CustomerModel);
 
 const customerController = new CustomerController(customerService, logger);
 

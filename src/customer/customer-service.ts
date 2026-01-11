@@ -1,11 +1,12 @@
-import CustomerModel from "./customer-model";
 import type { Customer } from "./customer-types";
-import type { AggregatePaginateModel } from "mongoose";
+import type { AggregatePaginateModel, Model } from "mongoose";
 import mongoose from "mongoose";
 
 export class CustomerService {
+    constructor(private customerModel: Model<Customer>) {}
+
     async create(customerData: Customer) {
-        const customer = new CustomerModel(customerData);
+        const customer = new this.customerModel(customerData);
         return customer.save();
     }
 
@@ -13,7 +14,7 @@ export class CustomerService {
         if (!mongoose.isValidObjectId(customerId)) {
             return null;
         }
-        const customer = await CustomerModel.findByIdAndUpdate(
+        const customer = await this.customerModel.findByIdAndUpdate(
             customerId,
             customerData,
             { new: true, runValidators: true }
@@ -32,7 +33,9 @@ export class CustomerService {
             ];
         }
 
-        const aggregate = CustomerModel.aggregate([{ $match: matchStage }]);
+        const aggregate = this.customerModel.aggregate([
+            { $match: matchStage },
+        ]);
 
         const options = {
             page: filters?.page || 1,
@@ -40,7 +43,7 @@ export class CustomerService {
         };
 
         const result = await (
-            CustomerModel as unknown as AggregatePaginateModel<Customer>
+            this.customerModel as unknown as AggregatePaginateModel<Customer>
         ).aggregatePaginate(aggregate, options);
 
         return {
@@ -56,7 +59,7 @@ export class CustomerService {
         if (!mongoose.isValidObjectId(customerId)) {
             return null;
         }
-        const customer = await CustomerModel.findById(customerId);
+        const customer = await this.customerModel.findById(customerId);
         return customer;
     }
 
@@ -64,7 +67,7 @@ export class CustomerService {
         if (!mongoose.isValidObjectId(customerId)) {
             return null;
         }
-        const customer = await CustomerModel.findByIdAndDelete(customerId);
+        const customer = await this.customerModel.findByIdAndDelete(customerId);
         return customer;
     }
 
@@ -77,7 +80,7 @@ export class CustomerService {
         }
 
         // Check if address with same text already exists
-        const existingCustomer = await CustomerModel.findById(customerId);
+        const existingCustomer = await this.customerModel.findById(customerId);
         if (!existingCustomer) {
             return null;
         }
@@ -94,12 +97,12 @@ export class CustomerService {
 
         // If this address is set as default, unset all other defaults
         if (addressData.isDefault) {
-            await CustomerModel.findByIdAndUpdate(customerId, {
+            await this.customerModel.findByIdAndUpdate(customerId, {
                 $set: { "address.$[].isDefault": false },
             });
         }
 
-        const customer = await CustomerModel.findByIdAndUpdate(
+        const customer = await this.customerModel.findByIdAndUpdate(
             customerId,
             { $push: { address: addressData } },
             { new: true, runValidators: true }
@@ -118,7 +121,8 @@ export class CustomerService {
 
         // If updating text, check if another address with same text already exists
         if (addressData.text) {
-            const existingCustomer = await CustomerModel.findById(customerId);
+            const existingCustomer =
+                await this.customerModel.findById(customerId);
             if (!existingCustomer) {
                 return null;
             }
@@ -137,7 +141,7 @@ export class CustomerService {
 
         // If setting as default, unset all other defaults first
         if (addressData.isDefault) {
-            await CustomerModel.findByIdAndUpdate(customerId, {
+            await this.customerModel.findByIdAndUpdate(customerId, {
                 $set: { "address.$[].isDefault": false },
             });
         }
@@ -150,7 +154,7 @@ export class CustomerService {
             updateFields["address.$.isDefault"] = addressData.isDefault;
         }
 
-        const customer = await CustomerModel.findOneAndUpdate(
+        const customer = await this.customerModel.findOneAndUpdate(
             { _id: customerId, "address._id": addressId },
             { $set: updateFields },
             { new: true, runValidators: true }
@@ -163,7 +167,7 @@ export class CustomerService {
             return null;
         }
 
-        const customer = await CustomerModel.findByIdAndUpdate(
+        const customer = await this.customerModel.findByIdAndUpdate(
             customerId,
             { $pull: { address: { _id: addressId } } },
             { new: true }
