@@ -635,6 +635,51 @@
                         "description": "Delete a coupon.\n\n**Requires:** Admin or Manager role\n\n**Authorization Logic:**\n- Admin: Can delete any coupon\n- Manager: Can only delete coupons from their tenant\n\n**Response:** Returns deleted coupon object"
                     },
                     "response": []
+                },
+                {
+                    "name": "Verify Coupon",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    pm.test('Coupon verified successfully', function() {",
+                                    "        pm.response.to.have.status(200);",
+                                    "    });",
+                                    "    ",
+                                    "    pm.test('Response has coupon details', function() {",
+                                    "        var jsonData = pm.response.json();",
+                                    "        pm.expect(jsonData).to.have.property('coupon');",
+                                    "        pm.expect(jsonData.coupon).to.have.property('code');",
+                                    "        pm.expect(jsonData.coupon).to.have.property('discount');",
+                                    "    });",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"code\": \"ENJOY_10\",\n    \"tenantId\": \"1\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/coupons/verify",
+                            "host": ["{{base_url}}"],
+                            "path": ["coupons", "verify"]
+                        },
+                        "description": "Verify if a coupon code is valid.\n\n**Requires:** Admin, Manager, or Customer role\n\n**Required Fields:**\n- code: Coupon code to verify (case-insensitive)\n- tenantId: Tenant ID for the coupon\n\n**Validation Checks:**\n- Coupon exists for the given tenant\n- Coupon has not expired (validUpto > now)\n\n**Use Case:**\n- Customers use this at checkout to validate coupon codes\n- Returns discount percentage if valid\n\n**Response (Success):**\n```json\n{\n  \"message\": \"Coupon is valid\",\n  \"coupon\": {\n    \"code\": \"enjoy_10\",\n    \"title\": \"Enjoy 10% Off\",\n    \"discount\": 10,\n    \"validUpto\": \"2026-12-31\"\n  }\n}\n```\n\n**Response (Error):**\n- 404: Coupon not found\n- 400: Coupon has expired"
+                    },
+                    "response": []
                 }
             ],
             "description": "Coupon management endpoints.\n\n**Key Features:**\n- Case-insensitive coupon codes (ENJOY_10 = enjoy_10)\n- Admin can manage coupons for any tenant (must provide tenantId)\n- Manager can only manage coupons for their tenant (tenantId from JWT)\n- Duplicate code validation per tenant\n\n**Authentication required for all endpoints**"

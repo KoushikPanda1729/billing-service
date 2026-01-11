@@ -14,6 +14,7 @@ import { Roles } from "../common/constants/roles";
 import idParamValidator from "./id-param-validator";
 import couponValidator from "./coupon-validator";
 import updateCouponValidator from "./update-coupon-validator";
+import verifyCouponValidator from "./verify-coupon-validator";
 import CouponModel from "./coupon-model";
 
 const router = Router();
@@ -69,6 +70,16 @@ router.delete(
     idParamValidator,
     asyncHandler((req: Request, res: Response, next: NextFunction) =>
         couponController.delete(req, res, next)
+    )
+);
+
+router.post(
+    "/verify",
+    authenticate,
+    authorize([Roles.ADMIN, Roles.MANAGER, Roles.CUSTOMER]),
+    verifyCouponValidator,
+    asyncHandler((req: Request, res: Response, next: NextFunction) =>
+        couponController.verify(req, res, next)
     )
 );
 

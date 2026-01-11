@@ -345,4 +345,51 @@ export class CouponController {
             coupon,
         });
     }
+
+    async verify(
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ): Promise<void> {
+        const result = validationResult(req);
+        if (!result.isEmpty()) {
+            return next(
+                createHttpError(400, "Validation Error", {
+                    errors: result.array(),
+                })
+            );
+        }
+
+        const { code, tenantId } = req.body as {
+            code: string;
+            tenantId: string;
+        };
+
+        const coupon = await this.couponService.getByCode(code, tenantId);
+
+        if (!coupon) {
+            return next(createHttpError(404, "Coupon not found"));
+        }
+
+        // Check if coupon has expired
+        const now = new Date();
+        const validUpto = new Date(coupon.validUpto);
+
+        if (validUpto <= now) {
+            return next(createHttpError(400, "Coupon has expired"));
+        }
+
+        this.logger.info(
+            `Coupon verified successfully: ${code} for tenant: ${tenantId}`
+        );
+        res.status(200).json({
+            message: "Coupon is valid",
+            coupon: {
+                code: coupon.code,
+                title: coupon.title,
+                discount: coupon.discount,
+                validUpto: coupon.validUpto,
+            },
+        });
+    }
 }
