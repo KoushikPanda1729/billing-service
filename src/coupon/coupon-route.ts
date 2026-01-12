@@ -26,7 +26,7 @@ const couponController = new CouponController(couponService, logger);
 router.get(
     "/",
     authenticate,
-    authorize([Roles.ADMIN, Roles.MANAGER]),
+    authorize([Roles.ADMIN, Roles.MANAGER, Roles.CUSTOMER]),
     asyncHandler((req: Request, res: Response, next: NextFunction) =>
         couponController.getAll(req, res, next)
     )

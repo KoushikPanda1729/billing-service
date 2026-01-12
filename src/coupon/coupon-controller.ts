@@ -210,10 +210,9 @@ export class CouponController {
     async getAll(
         req: Request,
         res: Response,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        _next: NextFunction
+        next: NextFunction
     ): Promise<void> {
-        const { q, limit, page } = req.query;
+        const { q, limit, page, tenantId } = req.query;
 
         const filters: {
             q?: string;
@@ -226,20 +225,53 @@ export class CouponController {
         if (limit) filters.limit = parseInt(limit as string);
         if (page) filters.page = parseInt(page as string);
 
-        // If user is a manager, filter by their tenant
+        // Get user role and tenant
         const userRole = req.user?.role;
         const userTenant = req.user?.tenant;
 
+        // Apply tenant filtering based on role
         if (userRole === Roles.MANAGER && userTenant) {
+            // Manager: Always filter by their tenant (ignore query param)
             filters.tenantId = String(userTenant);
+        } else if (userRole === Roles.CUSTOMER) {
+            // Customer: Must provide tenantId query parameter
+            if (!tenantId) {
+                return next(
+                    createHttpError(400, "tenantId query parameter is required")
+                );
+            }
+            filters.tenantId = tenantId as string;
+        } else if (userRole === Roles.ADMIN && tenantId) {
+            // Admin: Optionally filter by tenantId query parameter
+            filters.tenantId = tenantId as string;
         }
 
         const result = await this.couponService.getAll(filters);
-        this.logger.info("Fetched all coupons");
-        res.status(200).json({
-            message: "Coupons fetched successfully",
-            ...result,
-        });
+
+        // For customers, filter out expired coupons
+        if (userRole === Roles.CUSTOMER) {
+            const now = new Date();
+            const validCoupons = result.data.filter(
+                (coupon: Coupon) => new Date(coupon.validUpto) > now
+            );
+
+            this.logger.info(
+                `Fetched ${validCoupons.length} valid coupons for customer`
+            );
+            res.status(200).json({
+                message: "Coupons fetched successfully",
+                data: validCoupons,
+                total: validCoupons.length,
+                page: result.page,
+                limit: result.limit,
+            });
+        } else {
+            this.logger.info("Fetched all coupons");
+            res.status(200).json({
+                message: "Coupons fetched successfully",
+                ...result,
+            });
+        }
     }
 
     async getById(

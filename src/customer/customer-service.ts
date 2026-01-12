@@ -11,11 +11,21 @@ export class CustomerService {
     }
 
     async update(customerId: string, customerData: Partial<Customer>) {
-        if (!mongoose.isValidObjectId(customerId)) {
-            return null;
+        // First, try to find by MongoDB _id if it's a valid ObjectId
+        if (mongoose.isValidObjectId(customerId)) {
+            const customer = await this.customerModel.findByIdAndUpdate(
+                customerId,
+                customerData,
+                { new: true, runValidators: true }
+            );
+            if (customer) {
+                return customer;
+            }
         }
-        const customer = await this.customerModel.findByIdAndUpdate(
-            customerId,
+
+        // If not found or not a valid ObjectId, try to find by userId
+        const customer = await this.customerModel.findOneAndUpdate(
+            { userId: customerId },
             customerData,
             { new: true, runValidators: true }
         );
@@ -56,18 +66,35 @@ export class CustomerService {
     }
 
     async getById(customerId: string) {
-        if (!mongoose.isValidObjectId(customerId)) {
-            return null;
+        // First, try to find by MongoDB _id if it's a valid ObjectId
+        if (mongoose.isValidObjectId(customerId)) {
+            const customer = await this.customerModel.findById(customerId);
+            if (customer) {
+                return customer;
+            }
         }
-        const customer = await this.customerModel.findById(customerId);
+
+        // If not found or not a valid ObjectId, try to find by userId
+        const customer = await this.customerModel.findOne({
+            userId: customerId,
+        });
         return customer;
     }
 
     async delete(customerId: string) {
-        if (!mongoose.isValidObjectId(customerId)) {
-            return null;
+        // First, try to find by MongoDB _id if it's a valid ObjectId
+        if (mongoose.isValidObjectId(customerId)) {
+            const customer =
+                await this.customerModel.findByIdAndDelete(customerId);
+            if (customer) {
+                return customer;
+            }
         }
-        const customer = await this.customerModel.findByIdAndDelete(customerId);
+
+        // If not found or not a valid ObjectId, try to find by userId
+        const customer = await this.customerModel.findOneAndDelete({
+            userId: customerId,
+        });
         return customer;
     }
 
@@ -75,12 +102,17 @@ export class CustomerService {
         customerId: string,
         addressData: { text: string; isDefault: boolean }
     ) {
-        if (!mongoose.isValidObjectId(customerId)) {
-            return null;
+        // Find customer by _id or userId
+        let existingCustomer;
+        if (mongoose.isValidObjectId(customerId)) {
+            existingCustomer = await this.customerModel.findById(customerId);
+        }
+        if (!existingCustomer) {
+            existingCustomer = await this.customerModel.findOne({
+                userId: customerId,
+            });
         }
 
-        // Check if address with same text already exists
-        const existingCustomer = await this.customerModel.findById(customerId);
         if (!existingCustomer) {
             return null;
         }
@@ -97,13 +129,13 @@ export class CustomerService {
 
         // If this address is set as default, unset all other defaults
         if (addressData.isDefault) {
-            await this.customerModel.findByIdAndUpdate(customerId, {
+            await this.customerModel.findByIdAndUpdate(existingCustomer._id, {
                 $set: { "address.$[].isDefault": false },
             });
         }
 
         const customer = await this.customerModel.findByIdAndUpdate(
-            customerId,
+            existingCustomer._id,
             { $push: { address: addressData } },
             { new: true, runValidators: true }
         );
@@ -115,18 +147,23 @@ export class CustomerService {
         addressId: string,
         addressData: { text?: string; isDefault?: boolean }
     ) {
-        if (!mongoose.isValidObjectId(customerId)) {
+        // Find customer by _id or userId
+        let existingCustomer;
+        if (mongoose.isValidObjectId(customerId)) {
+            existingCustomer = await this.customerModel.findById(customerId);
+        }
+        if (!existingCustomer) {
+            existingCustomer = await this.customerModel.findOne({
+                userId: customerId,
+            });
+        }
+
+        if (!existingCustomer) {
             return null;
         }
 
         // If updating text, check if another address with same text already exists
         if (addressData.text) {
-            const existingCustomer =
-                await this.customerModel.findById(customerId);
-            if (!existingCustomer) {
-                return null;
-            }
-
             const duplicateExists = existingCustomer.address.some(
                 (addr) =>
                     String(addr._id) !== addressId &&
@@ -141,7 +178,7 @@ export class CustomerService {
 
         // If setting as default, unset all other defaults first
         if (addressData.isDefault) {
-            await this.customerModel.findByIdAndUpdate(customerId, {
+            await this.customerModel.findByIdAndUpdate(existingCustomer._id, {
                 $set: { "address.$[].isDefault": false },
             });
         }
@@ -155,7 +192,7 @@ export class CustomerService {
         }
 
         const customer = await this.customerModel.findOneAndUpdate(
-            { _id: customerId, "address._id": addressId },
+            { _id: existingCustomer._id, "address._id": addressId },
             { $set: updateFields },
             { new: true, runValidators: true }
         );
@@ -163,12 +200,23 @@ export class CustomerService {
     }
 
     async deleteAddress(customerId: string, addressId: string) {
-        if (!mongoose.isValidObjectId(customerId)) {
+        // Find customer by _id or userId
+        let existingCustomer;
+        if (mongoose.isValidObjectId(customerId)) {
+            existingCustomer = await this.customerModel.findById(customerId);
+        }
+        if (!existingCustomer) {
+            existingCustomer = await this.customerModel.findOne({
+                userId: customerId,
+            });
+        }
+
+        if (!existingCustomer) {
             return null;
         }
 
         const customer = await this.customerModel.findByIdAndUpdate(
-            customerId,
+            existingCustomer._id,
             { $pull: { address: { _id: addressId } } },
             { new: true }
         );

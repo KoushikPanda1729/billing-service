@@ -4,6 +4,7 @@ export default [
     param("id")
         .exists()
         .withMessage("Customer ID is required")
-        .isMongoId()
-        .withMessage("Invalid customer ID"),
+        .trim()
+        .notEmpty()
+        .withMessage("Customer ID cannot be empty"),
 ];
