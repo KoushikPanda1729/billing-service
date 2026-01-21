@@ -96,7 +96,7 @@ Config file location ---> config/development.yaml
 
 Database URL in config --->
 database:
-  url: "mongodb://root:root@localhost:27018/billing-service?authSource=admin"
+url: "mongodb://root:root@localhost:27018/billing-service?authSource=admin"
 
 ## Troubleshooting
 
