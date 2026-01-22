@@ -3,6 +3,10 @@ import { Config } from "./config/index";
 import logger from "./config/logger";
 import { initDB } from "./config/initdb";
 import { createMessageBroker } from "./common/services/broker/MessageBrokerFactory";
+import ProductModel from "./product/product-model";
+import ToppingModel from "./topping/topping-model";
+import type { Product } from "./product/product-types";
+import type { Topping } from "./topping/topping-types";
 
 const startServer = async () => {
     const { PORT } = Config;
@@ -19,7 +23,7 @@ const startServer = async () => {
             await broker.consumeMessages(
                 ["product", "topping"],
                 "billing-service-group",
-                (message) => {
+                async (message) => {
                     logger.info("Received message:", {
                         topic: message.topic,
                         partition: message.partition,
@@ -32,38 +36,47 @@ const startServer = async () => {
                     if (message.value) {
                         const payload = JSON.parse(message.value) as {
                             event: string;
-                            data: unknown;
+                            data: Product | Topping;
                         };
                         switch (payload.event) {
                             case "product-created":
-                                logger.info("Product created:", payload.data);
-                                // TODO: Handle product created event
+                                await ProductModel.create(payload.data);
+                                logger.info("Product saved:", payload.data);
                                 break;
                             case "product-updated":
+                                await ProductModel.findByIdAndUpdate(
+                                    payload.data._id,
+                                    payload.data
+                                );
                                 logger.info("Product updated:", payload.data);
-                                // TODO: Handle product updated event
                                 break;
                             case "product-deleted":
+                                await ProductModel.findByIdAndDelete(
+                                    payload.data._id
+                                );
                                 logger.info("Product deleted:", payload.data);
-                                // TODO: Handle product deleted event
                                 break;
                             case "topping-created":
-                                logger.info("Topping created:", payload.data);
-                                // TODO: Handle topping created event
+                                await ToppingModel.create(payload.data);
+                                logger.info("Topping saved:", payload.data);
                                 break;
                             case "topping-updated":
+                                await ToppingModel.findByIdAndUpdate(
+                                    payload.data._id,
+                                    payload.data
+                                );
                                 logger.info("Topping updated:", payload.data);
-                                // TODO: Handle topping updated event
                                 break;
                             case "topping-deleted":
+                                await ToppingModel.findByIdAndDelete(
+                                    payload.data._id
+                                );
                                 logger.info("Topping deleted:", payload.data);
-                                // TODO: Handle topping deleted event
                                 break;
                             default:
                                 logger.warn("Unknown event:", payload.event);
                         }
                     }
-                    return Promise.resolve();
                 }
             );
             logger.info("Message consumer started");
