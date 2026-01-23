@@ -350,7 +350,11 @@
                         "url": {
                             "raw": "{{base_url}}/customers/{{customer_id}}/addresses",
                             "host": ["{{base_url}}"],
-                            "path": ["customers", "{{customer_id}}", "addresses"]
+                            "path": [
+                                "customers",
+                                "{{customer_id}}",
+                                "addresses"
+                            ]
                         },
                         "description": "Add a new address to a customer."
                     },
@@ -373,7 +377,12 @@
                         "url": {
                             "raw": "{{base_url}}/customers/{{customer_id}}/addresses/{{address_id}}",
                             "host": ["{{base_url}}"],
-                            "path": ["customers", "{{customer_id}}", "addresses", "{{address_id}}"]
+                            "path": [
+                                "customers",
+                                "{{customer_id}}",
+                                "addresses",
+                                "{{address_id}}"
+                            ]
                         },
                         "description": "Update a specific address."
                     },
@@ -387,7 +396,12 @@
                         "url": {
                             "raw": "{{base_url}}/customers/{{customer_id}}/addresses/{{address_id}}",
                             "host": ["{{base_url}}"],
-                            "path": ["customers", "{{customer_id}}", "addresses", "{{address_id}}"]
+                            "path": [
+                                "customers",
+                                "{{customer_id}}",
+                                "addresses",
+                                "{{address_id}}"
+                            ]
                         },
                         "description": "Delete a specific address from a customer."
                     },
