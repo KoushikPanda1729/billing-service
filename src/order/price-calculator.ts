@@ -1,13 +1,17 @@
 import ProductModel from "../product/product-model";
 import ToppingModel from "../topping/topping-model";
 import TaxConfigurationModel from "../tax/tax-model";
+import DeliveryConfigurationModel from "../delivery/delivery-model";
 import type { OrderItem, TaxBreakdownItem } from "./order-types";
 import type { Coupon } from "../coupon/coupon-types";
+import type { DeliveryChargeResult } from "../delivery/delivery-types";
 
 export interface PriceValidationResult {
     isValid: boolean;
     subTotal: number;
     discountAmount: number;
+    deliveryCharge: number;
+    deliveryInfo?: DeliveryChargeResult;
     taxableAmount: number;
     taxes: TaxBreakdownItem[];
     taxTotal: number;
@@ -150,7 +154,8 @@ export class PriceCalculator {
         submittedTotal: number,
         coupon?: Coupon | null,
         submittedDiscount?: number,
-        submittedTaxTotal?: number
+        submittedTaxTotal?: number,
+        submittedDeliveryCharge?: number
     ): Promise<PriceValidationResult> {
         const errors: string[] = [];
         const itemDetails: PriceValidationResult["itemDetails"] = [];
@@ -211,7 +216,33 @@ export class PriceCalculator {
             }
         }
 
-        // Calculate taxable amount (after discount)
+        // Calculate delivery charge based on subtotal after discount
+        const afterDiscountAmount = subTotal - discountAmount;
+        let deliveryCharge = 0;
+        let deliveryInfo: DeliveryChargeResult | undefined;
+
+        const deliveryConfig = await DeliveryConfigurationModel.findOne({
+            tenantId,
+        });
+
+        if (deliveryConfig) {
+            deliveryInfo = this.calculateDeliveryCharge(
+                deliveryConfig,
+                afterDiscountAmount
+            );
+            deliveryCharge = deliveryInfo.deliveryCharge;
+        }
+
+        // Validate submitted delivery charge
+        if (submittedDeliveryCharge !== undefined) {
+            if (Math.abs(deliveryCharge - submittedDeliveryCharge) > 0.01) {
+                errors.push(
+                    `Delivery charge mismatch: calculated ${deliveryCharge}, submitted ${submittedDeliveryCharge}`
+                );
+            }
+        }
+
+        // Calculate taxable amount (after discount, delivery is typically not taxed)
         const taxableAmount = subTotal - discountAmount;
 
         // Calculate taxes
@@ -250,7 +281,9 @@ export class PriceCalculator {
             }
         }
 
-        const finalTotal = Math.round((taxableAmount + taxTotal) * 100) / 100;
+        // Final total = taxable amount + tax + delivery charge
+        const finalTotal =
+            Math.round((taxableAmount + taxTotal + deliveryCharge) * 100) / 100;
 
         // Validate final total
         if (Math.abs(finalTotal - submittedTotal) > 0.01) {
@@ -263,12 +296,109 @@ export class PriceCalculator {
             isValid: errors.length === 0,
             subTotal,
             discountAmount,
+            deliveryCharge,
+            ...(deliveryInfo && { deliveryInfo }),
             taxableAmount,
             taxes,
             taxTotal,
             finalTotal,
             errors,
             itemDetails,
+        };
+    }
+
+    /**
+     * Calculate delivery charge based on order value
+     * Future: Will support distance-based pricing when OSRM is integrated
+     */
+    private calculateDeliveryCharge(
+        config: {
+            isActive: boolean;
+            orderValueTiers: {
+                minOrderValue: number;
+                deliveryCharge: number;
+                perKmCharge?: number;
+            }[];
+            freeDeliveryThreshold?: number;
+        },
+        orderSubTotal: number
+    ): DeliveryChargeResult {
+        // If delivery is disabled, return 0
+        if (!config.isActive) {
+            return {
+                deliveryCharge: 0,
+                isFreeDelivery: true,
+                freeDeliveryReason: "disabled",
+            };
+        }
+
+        // Check free delivery threshold first
+        if (
+            config.freeDeliveryThreshold &&
+            orderSubTotal >= config.freeDeliveryThreshold
+        ) {
+            return {
+                deliveryCharge: 0,
+                isFreeDelivery: true,
+                freeDeliveryReason: "threshold",
+            };
+        }
+
+        // If no tiers configured, free delivery
+        if (!config.orderValueTiers || config.orderValueTiers.length === 0) {
+            return {
+                deliveryCharge: 0,
+                isFreeDelivery: true,
+                freeDeliveryReason: "tier",
+            };
+        }
+
+        // Find applicable tier (highest minOrderValue that's <= orderSubTotal)
+        const sortedTiers = [...config.orderValueTiers].sort(
+            (a, b) => b.minOrderValue - a.minOrderValue
+        );
+
+        const applicableTier = sortedTiers.find(
+            (tier) => orderSubTotal >= tier.minOrderValue
+        );
+
+        if (!applicableTier) {
+            // No tier found, use the lowest tier
+            const lowestTier = config.orderValueTiers.reduce((min, tier) =>
+                tier.minOrderValue < min.minOrderValue ? tier : min
+            );
+
+            if (lowestTier.deliveryCharge === 0) {
+                return {
+                    deliveryCharge: 0,
+                    isFreeDelivery: true,
+                    freeDeliveryReason: "tier",
+                    appliedTier: lowestTier,
+                };
+            }
+
+            return {
+                deliveryCharge: lowestTier.deliveryCharge,
+                isFreeDelivery: false,
+                appliedTier: lowestTier,
+            };
+        }
+
+        // Check if this tier has free delivery
+        if (applicableTier.deliveryCharge === 0) {
+            return {
+                deliveryCharge: 0,
+                isFreeDelivery: true,
+                freeDeliveryReason: "tier",
+                appliedTier: applicableTier,
+            };
+        }
+
+        return {
+            deliveryCharge:
+                Math.round(applicableTier.deliveryCharge * 100) / 100,
+            isFreeDelivery: false,
+            appliedTier: applicableTier,
         };
     }
 }

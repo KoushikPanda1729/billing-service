@@ -18,6 +18,7 @@ This guide explains how to set up a self-hosted OSRM server for calculating road
 ## Overview
 
 ### What is OSRM?
+
 - **Open Source Routing Machine** - A high-performance routing engine
 - Uses **OpenStreetMap** data (free, community-driven map data)
 - Calculates **actual road distance** (not straight-line)
@@ -25,12 +26,13 @@ This guide explains how to set up a self-hosted OSRM server for calculating road
 - **Completely free** - no API costs
 
 ### Why Self-Host?
-| Public Demo | Self-Hosted |
-|-------------|-------------|
-| Rate limited | Unlimited requests |
-| Slow response | Fast (~10-50ms) |
-| Not for production | Production ready |
-| Free | Free (only server cost) |
+
+| Public Demo        | Self-Hosted             |
+| ------------------ | ----------------------- |
+| Rate limited       | Unlimited requests      |
+| Slow response      | Fast (~10-50ms)         |
+| Not for production | Production ready        |
+| Free               | Free (only server cost) |
 
 ---
 
@@ -42,6 +44,7 @@ This guide explains how to set up a self-hosted OSRM server for calculating road
 - **Linux/macOS/Windows** with Docker support
 
 ### Verify Docker Installation
+
 ```bash
 docker --version
 # Docker version 24.x.x or higher
@@ -56,18 +59,18 @@ docker --version
 Create `docker-compose.osrm.yml` in your project root:
 
 ```yaml
-version: '3.8'
+version: "3.8"
 
 services:
-  osrm:
-    image: osrm/osrm-backend
-    container_name: osrm-server
-    ports:
-      - "5000:5000"
-    volumes:
-      - ./osrm-data:/data
-    command: osrm-routed --algorithm mld /data/india-latest.osrm
-    restart: unless-stopped
+    osrm:
+        image: osrm/osrm-backend
+        container_name: osrm-server
+        ports:
+            - "5000:5000"
+        volumes:
+            - ./osrm-data:/data
+        command: osrm-routed --algorithm mld /data/india-latest.osrm
+        restart: unless-stopped
 ```
 
 ---
@@ -124,11 +127,11 @@ docker run -t -v "${PWD}:/data" osrm/osrm-backend osrm-customize /data/india-lat
 
 **Note:** Processing time depends on region size and machine specs.
 
-| Region | Download Size | Processing Time | RAM Required |
-|--------|---------------|-----------------|--------------|
-| Karnataka | ~100MB | ~2 mins | 2GB |
-| South India | ~300MB | ~5 mins | 3GB |
-| Entire India | ~1.2GB | ~15-20 mins | 4GB |
+| Region       | Download Size | Processing Time | RAM Required |
+| ------------ | ------------- | --------------- | ------------ |
+| Karnataka    | ~100MB        | ~2 mins         | 2GB          |
+| South India  | ~300MB        | ~5 mins         | 3GB          |
+| Entire India | ~1.2GB        | ~15-20 mins     | 4GB          |
 
 ### Step 4: Start OSRM Server
 
@@ -156,6 +159,7 @@ curl "http://localhost:5000/route/v1/driving/77.5946,12.9716;77.6600,12.8458?ove
 ```
 
 Expected Response:
+
 ```json
 {
   "code": "Ok",
@@ -190,6 +194,7 @@ Expected Response:
 | `steps` | `true` (turn-by-turn directions), `false` (summary only) |
 
 **Example Request:**
+
 ```bash
 # Restaurant: 12.9716, 77.5946 (Bangalore)
 # Customer: 12.8458, 77.6600 (Electronic City)
@@ -198,40 +203,41 @@ curl "http://localhost:5000/route/v1/driving/77.5946,12.9716;77.6600,12.8458?ove
 ```
 
 **Example Response:**
+
 ```json
 {
-  "code": "Ok",
-  "routes": [
-    {
-      "distance": 18500.5,
-      "duration": 2100.3,
-      "weight": 2100.3,
-      "weight_name": "routability",
-      "legs": [
+    "code": "Ok",
+    "routes": [
         {
-          "distance": 18500.5,
-          "duration": 2100.3,
-          "steps": [],
-          "summary": "",
-          "weight": 2100.3
+            "distance": 18500.5,
+            "duration": 2100.3,
+            "weight": 2100.3,
+            "weight_name": "routability",
+            "legs": [
+                {
+                    "distance": 18500.5,
+                    "duration": 2100.3,
+                    "steps": [],
+                    "summary": "",
+                    "weight": 2100.3
+                }
+            ]
         }
-      ]
-    }
-  ],
-  "waypoints": [
-    {
-      "hint": "...",
-      "distance": 10.5,
-      "name": "MG Road",
-      "location": [77.5946, 12.9716]
-    },
-    {
-      "hint": "...",
-      "distance": 15.2,
-      "name": "Hosur Road",
-      "location": [77.6600, 12.8458]
-    }
-  ]
+    ],
+    "waypoints": [
+        {
+            "hint": "...",
+            "distance": 10.5,
+            "name": "MG Road",
+            "location": [77.5946, 12.9716]
+        },
+        {
+            "hint": "...",
+            "distance": 15.2,
+            "name": "Hosur Road",
+            "location": [77.66, 12.8458]
+        }
+    ]
 }
 ```
 
@@ -259,7 +265,7 @@ Add to your `.env` or `config/development.yaml`:
 ```yaml
 # config/development.yaml
 osrm:
-  url: "http://localhost:5000"
+    url: "http://localhost:5000"
 ```
 
 ### Step 2: Create Distance Service
@@ -340,8 +346,10 @@ const distanceService = new DistanceService();
 
 // Calculate delivery distance
 const result = await distanceService.calculateDistance(
-    12.9716, 77.5946,  // Restaurant location
-    12.8458, 77.6600   // Customer location
+    12.9716,
+    77.5946, // Restaurant location
+    12.8458,
+    77.66 // Customer location
 );
 
 console.log(`Distance: ${result.distanceKm} km`);
@@ -349,13 +357,17 @@ console.log(`Duration: ${result.durationMins} mins`);
 
 // Check if within delivery range
 const rangeCheck = await distanceService.isWithinDeliveryRange(
-    12.9716, 77.5946,
-    12.8458, 77.6600,
-    15  // Max 15km delivery range
+    12.9716,
+    77.5946,
+    12.8458,
+    77.66,
+    15 // Max 15km delivery range
 );
 
 if (!rangeCheck.withinRange) {
-    throw new Error(`Delivery not available. Distance: ${rangeCheck.distanceKm}km exceeds 15km limit`);
+    throw new Error(
+        `Delivery not available. Distance: ${rangeCheck.distanceKm}km exceeds 15km limit`
+    );
 }
 ```
 
@@ -369,23 +381,23 @@ Add to your main `docker-compose.yml`:
 
 ```yaml
 services:
-  # ... your other services ...
+    # ... your other services ...
 
-  osrm:
-    image: osrm/osrm-backend
-    container_name: osrm-server
-    ports:
-      - "5000:5000"
-    volumes:
-      - ./osrm-data:/data
-    command: osrm-routed --algorithm mld /data/india-latest.osrm --max-table-size 10000
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          memory: 4G
-        reservations:
-          memory: 2G
+    osrm:
+        image: osrm/osrm-backend
+        container_name: osrm-server
+        ports:
+            - "5000:5000"
+        volumes:
+            - ./osrm-data:/data
+        command: osrm-routed --algorithm mld /data/india-latest.osrm --max-table-size 10000
+        restart: unless-stopped
+        deploy:
+            resources:
+                limits:
+                    memory: 4G
+                reservations:
+                    memory: 2G
 ```
 
 ### Option 2: Kubernetes Deployment
@@ -394,53 +406,53 @@ services:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: osrm-server
+    name: osrm-server
 spec:
-  replicas: 2
-  selector:
-    matchLabels:
-      app: osrm
-  template:
-    metadata:
-      labels:
-        app: osrm
-    spec:
-      containers:
-        - name: osrm
-          image: osrm/osrm-backend
-          args:
-            - osrm-routed
-            - --algorithm
-            - mld
-            - /data/india-latest.osrm
-          ports:
-            - containerPort: 5000
-          resources:
-            requests:
-              memory: "2Gi"
-              cpu: "500m"
-            limits:
-              memory: "4Gi"
-              cpu: "2000m"
-          volumeMounts:
-            - name: osrm-data
-              mountPath: /data
-      volumes:
-        - name: osrm-data
-          persistentVolumeClaim:
-            claimName: osrm-pvc
+    replicas: 2
+    selector:
+        matchLabels:
+            app: osrm
+    template:
+        metadata:
+            labels:
+                app: osrm
+        spec:
+            containers:
+                - name: osrm
+                  image: osrm/osrm-backend
+                  args:
+                      - osrm-routed
+                      - --algorithm
+                      - mld
+                      - /data/india-latest.osrm
+                  ports:
+                      - containerPort: 5000
+                  resources:
+                      requests:
+                          memory: "2Gi"
+                          cpu: "500m"
+                      limits:
+                          memory: "4Gi"
+                          cpu: "2000m"
+                  volumeMounts:
+                      - name: osrm-data
+                        mountPath: /data
+            volumes:
+                - name: osrm-data
+                  persistentVolumeClaim:
+                      claimName: osrm-pvc
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: osrm-service
+    name: osrm-service
 spec:
-  selector:
-    app: osrm
-  ports:
-    - port: 5000
-      targetPort: 5000
-  type: ClusterIP
+    selector:
+        app: osrm
+    ports:
+        - port: 5000
+          targetPort: 5000
+    type: ClusterIP
 ```
 
 ### Performance Tuning
@@ -489,11 +501,13 @@ docker start osrm-server
 ## Troubleshooting
 
 ### Error: "No route found"
+
 - Check if coordinates are within the map data region
 - Verify coordinates format: `longitude,latitude` (not lat,lng!)
 - Ensure the location is near a road
 
 ### Error: "Connection refused"
+
 ```bash
 # Check if container is running
 docker ps | grep osrm
@@ -506,11 +520,13 @@ docker restart osrm-server
 ```
 
 ### Error: "Out of memory"
+
 - Use a smaller region map (e.g., state instead of entire India)
 - Increase Docker memory limit
 - Use a machine with more RAM
 
 ### Slow Processing
+
 - Use SSD for faster I/O
 - Increase CPU cores available to Docker
 - Process during off-peak hours
@@ -542,11 +558,11 @@ curl "http://localhost:5000/route/v1/driving/77.5946,12.9716;77.6245,12.9352?ove
 
 ## Summary
 
-| Step | Command |
-|------|---------|
-| Download map | `wget https://download.geofabrik.de/asia/india-latest.osm.pbf` |
-| Extract | `docker run -t -v "${PWD}:/data" osrm/osrm-backend osrm-extract -p /opt/car.lua /data/india-latest.osm.pbf` |
-| Partition | `docker run -t -v "${PWD}:/data" osrm/osrm-backend osrm-partition /data/india-latest.osrm` |
-| Customize | `docker run -t -v "${PWD}:/data" osrm/osrm-backend osrm-customize /data/india-latest.osrm` |
-| Run server | `docker run -t -d -p 5000:5000 -v "${PWD}:/data" osrm/osrm-backend osrm-routed --algorithm mld /data/india-latest.osrm` |
-| Test | `curl "http://localhost:5000/route/v1/driving/77.5946,12.9716;77.6245,12.9352"` |
+| Step         | Command                                                                                                                 |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| Download map | `wget https://download.geofabrik.de/asia/india-latest.osm.pbf`                                                          |
+| Extract      | `docker run -t -v "${PWD}:/data" osrm/osrm-backend osrm-extract -p /opt/car.lua /data/india-latest.osm.pbf`             |
+| Partition    | `docker run -t -v "${PWD}:/data" osrm/osrm-backend osrm-partition /data/india-latest.osrm`                              |
+| Customize    | `docker run -t -v "${PWD}:/data" osrm/osrm-backend osrm-customize /data/india-latest.osrm`                              |
+| Run server   | `docker run -t -d -p 5000:5000 -v "${PWD}:/data" osrm/osrm-backend osrm-routed --algorithm mld /data/india-latest.osrm` |
+| Test         | `curl "http://localhost:5000/route/v1/driving/77.5946,12.9716;77.6245,12.9352"`                                         |

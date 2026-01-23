@@ -2,16 +2,152 @@
     "info": {
         "_postman_id": "billing-service-collection",
         "name": "Billing Service",
-        "description": "Billing service API for customer management with JWT authentication.",
+        "description": "Billing service API for customer, coupon, order, tax, and delivery management with JWT authentication.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
     },
+    "auth": {
+        "type": "bearer",
+        "bearer": [
+            {
+                "key": "token",
+                "value": "{{access_token}}",
+                "type": "string"
+            }
+        ]
+    },
     "item": [
+        {
+            "name": "Authentication",
+            "item": [
+                {
+                    "name": "Login",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    if (jsonData.accessToken) {",
+                                    "        pm.environment.set('access_token', jsonData.accessToken);",
+                                    "        console.log('Access token saved to environment');",
+                                    "    }",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"pa@gmail.com\",\n    \"password\": \"Panda@123@\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{auth_base_url}}/auth/login",
+                            "host": ["{{auth_base_url}}"],
+                            "path": ["auth", "login"]
+                        },
+                        "description": "Login to get access token.\n\n**Auto-saves:** access_token to environment\n\n**Test Credentials:**\n- Customer: pa@gmail.com / Panda@123@\n- Manager: manager20@example.com / ManagerPass123!\n- Admin: admin1@example.com / Admin@123456"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Self",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{auth_base_url}}/auth/self",
+                            "host": ["{{auth_base_url}}"],
+                            "path": ["auth", "self"]
+                        },
+                        "description": "Get current logged-in user info."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Refresh",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    if (jsonData.accessToken) {",
+                                    "        pm.environment.set('access_token', jsonData.accessToken);",
+                                    "    }",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                            "raw": "{{auth_base_url}}/auth/refresh",
+                            "host": ["{{auth_base_url}}"],
+                            "path": ["auth", "refresh"]
+                        },
+                        "description": "Refresh access token."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Logout",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    pm.environment.set('access_token', '');",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                            "raw": "{{auth_base_url}}/auth/logout",
+                            "host": ["{{auth_base_url}}"],
+                            "path": ["auth", "logout"]
+                        },
+                        "description": "Logout and clear token."
+                    },
+                    "response": []
+                }
+            ],
+            "description": "Auth service endpoints ({{auth_base_url}})"
+        },
         {
             "name": "Health & Info",
             "item": [
                 {
                     "name": "Root Endpoint",
                     "request": {
+                        "auth": {
+                            "type": "noauth"
+                        },
                         "method": "GET",
                         "header": [],
                         "url": {
@@ -74,7 +210,7 @@
                                 }
                             ]
                         },
-                        "description": "Get all customers with pagination.\n\n**Requires:** Admin or Manager role\n\n**Query Parameters:**\n- page: Page number (default: 1)\n- limit: Items per page (default: 10)\n- q: Search query (optional)\n\n**Response:** Array of customers with pagination metadata"
+                        "description": "Get all customers with pagination.\n\n**Requires:** Admin or Manager role\n\n**Query Parameters:**\n- page: Page number (default: 1)\n- limit: Items per page (default: 10)\n- q: Search query (optional)"
                     },
                     "response": []
                 },
@@ -88,15 +224,6 @@
                                     "if (pm.response.code === 200) {",
                                     "    pm.test('Customer retrieved successfully', function() {",
                                     "        pm.response.to.have.status(200);",
-                                    "    });",
-                                    "    ",
-                                    "    pm.test('Customer has required fields', function() {",
-                                    "        var jsonData = pm.response.json();",
-                                    "        pm.expect(jsonData.customer).to.have.property('userId');",
-                                    "        pm.expect(jsonData.customer).to.have.property('firstName');",
-                                    "        pm.expect(jsonData.customer).to.have.property('lastName');",
-                                    "        pm.expect(jsonData.customer).to.have.property('email');",
-                                    "        pm.expect(jsonData.customer).to.have.property('address');",
                                     "    });",
                                     "}"
                                 ],
@@ -112,7 +239,7 @@
                             "host": ["{{base_url}}"],
                             "path": ["customers", "{{customer_id}}"]
                         },
-                        "description": "Get a specific customer by ID.\n\n**Requires:** Admin, Manager, or Customer role\n\n**Returns:** Customer details"
+                        "description": "Get a specific customer by ID."
                     },
                     "response": []
                 },
@@ -124,15 +251,8 @@
                             "script": {
                                 "exec": [
                                     "if (pm.response.code === 201) {",
-                                    "    pm.test('Customer created successfully', function() {",
-                                    "        pm.response.to.have.status(201);",
-                                    "    });",
-                                    "    ",
-                                    "    pm.test('Response has customer object', function() {",
-                                    "        var jsonData = pm.response.json();",
-                                    "        pm.expect(jsonData).to.have.property('customer');",
-                                    "        pm.environment.set('customer_id', jsonData.customer._id);",
-                                    "    });",
+                                    "    var jsonData = pm.response.json();",
+                                    "    pm.environment.set('customer_id', jsonData.customer._id);",
                                     "}"
                                 ],
                                 "type": "text/javascript"
@@ -156,32 +276,12 @@
                             "host": ["{{base_url}}"],
                             "path": ["customers"]
                         },
-                        "description": "Create a new customer profile.\n\n**Requires:** Admin, Manager, or Customer role\n\n**User Data from Token:**\n- userId, firstName, lastName, email are automatically extracted from JWT token\n\n**Optional Fields:**\n- address (array of address objects) - Can be added later via address APIs\n\n**Recommended Flow:**\n1. Create customer (no address needed)\n2. User can browse/use the app\n3. Add address later via POST /customers/:id/addresses when needed (e.g., at checkout)\n\n**Response:** Returns created customer object"
+                        "description": "Create a new customer profile. User data is extracted from JWT token."
                     },
                     "response": []
                 },
                 {
                     "name": "Update Customer",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "if (pm.response.code === 200) {",
-                                    "    pm.test('Customer updated successfully', function() {",
-                                    "        pm.response.to.have.status(200);",
-                                    "    });",
-                                    "    ",
-                                    "    pm.test('Response has customer object', function() {",
-                                    "        var jsonData = pm.response.json();",
-                                    "        pm.expect(jsonData).to.have.property('customer');",
-                                    "    });",
-                                    "}"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
                     "request": {
                         "method": "PUT",
                         "header": [
@@ -199,32 +299,12 @@
                             "host": ["{{base_url}}"],
                             "path": ["customers", "{{customer_id}}"]
                         },
-                        "description": "Update customer profile information.\n\n**Requires:** Admin, Manager, or Customer role\n\n**Allowed Fields:**\n- firstName\n- lastName\n- email\n- userId\n\n**Smart Update Validation:**\n- If no fields are changed, returns 200 with message \"No changes detected\"\n- Only updates if at least one field is different from current value\n- Prevents unnecessary database operations\n\n**IMPORTANT - Address Field NOT Allowed:**\nThis endpoint will REJECT requests that include the 'address' field.\n\n**To manage addresses, use these dedicated endpoints:**\n- POST /customers/:id/addresses (add new address)\n- PUT /customers/:id/addresses/:addressId (update existing address)\n- DELETE /customers/:id/addresses/:addressId (delete address)\n\n**Response:** Returns updated customer object"
+                        "description": "Update customer profile information. Address field NOT allowed here."
                     },
                     "response": []
                 },
                 {
                     "name": "Delete Customer",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "if (pm.response.code === 200) {",
-                                    "    pm.test('Customer deleted successfully', function() {",
-                                    "        pm.response.to.have.status(200);",
-                                    "    });",
-                                    "    ",
-                                    "    pm.test('Response has customer object', function() {",
-                                    "        var jsonData = pm.response.json();",
-                                    "        pm.expect(jsonData).to.have.property('customer');",
-                                    "    });",
-                                    "}"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
                     "request": {
                         "method": "DELETE",
                         "header": [],
@@ -233,7 +313,7 @@
                             "host": ["{{base_url}}"],
                             "path": ["customers", "{{customer_id}}"]
                         },
-                        "description": "Delete a customer.\n\n**Requires:** Admin or Manager role\n\n**Response:** Returns deleted customer object"
+                        "description": "Delete a customer. Requires Admin or Manager role."
                     },
                     "response": []
                 },
@@ -245,20 +325,10 @@
                             "script": {
                                 "exec": [
                                     "if (pm.response.code === 200) {",
-                                    "    pm.test('Address added successfully', function() {",
-                                    "        pm.response.to.have.status(200);",
-                                    "    });",
-                                    "    ",
-                                    "    pm.test('Response has customer with addresses', function() {",
-                                    "        var jsonData = pm.response.json();",
-                                    "        pm.expect(jsonData.customer).to.have.property('address');",
-                                    "        pm.expect(jsonData.customer.address).to.be.an('array');",
-                                    "        ",
-                                    "        // Save the first address ID for update/delete operations",
-                                    "        if (jsonData.customer.address.length > 0) {",
-                                    "            pm.environment.set('address_id', jsonData.customer.address[0]._id);",
-                                    "        }",
-                                    "    });",
+                                    "    var jsonData = pm.response.json();",
+                                    "    if (jsonData.customer.address.length > 0) {",
+                                    "        pm.environment.set('address_id', jsonData.customer.address[0]._id);",
+                                    "    }",
                                     "}"
                                 ],
                                 "type": "text/javascript"
@@ -280,38 +350,14 @@
                         "url": {
                             "raw": "{{base_url}}/customers/{{customer_id}}/addresses",
                             "host": ["{{base_url}}"],
-                            "path": [
-                                "customers",
-                                "{{customer_id}}",
-                                "addresses"
-                            ]
+                            "path": ["customers", "{{customer_id}}", "addresses"]
                         },
-                        "description": "Add a new address to a customer.\n\n**Requires:** Admin, Manager, or Customer role\n\n**Required Fields:**\n- text: Address text\n- isDefault: Set as default address (boolean)\n\n**Validation:**\n- Duplicate addresses are NOT allowed (case-insensitive)\n- Returns 409 Conflict if address already exists\n\n**Note:** If isDefault is true, all other addresses will be set to non-default\n\n**Response:** Returns updated customer object with all addresses"
+                        "description": "Add a new address to a customer."
                     },
                     "response": []
                 },
                 {
                     "name": "Update Address",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "if (pm.response.code === 200) {",
-                                    "    pm.test('Address updated successfully', function() {",
-                                    "        pm.response.to.have.status(200);",
-                                    "    });",
-                                    "    ",
-                                    "    pm.test('Response has customer object', function() {",
-                                    "        var jsonData = pm.response.json();",
-                                    "        pm.expect(jsonData).to.have.property('customer');",
-                                    "    });",
-                                    "}"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
                     "request": {
                         "method": "PUT",
                         "header": [
@@ -327,85 +373,34 @@
                         "url": {
                             "raw": "{{base_url}}/customers/{{customer_id}}/addresses/{{address_id}}",
                             "host": ["{{base_url}}"],
-                            "path": [
-                                "customers",
-                                "{{customer_id}}",
-                                "addresses",
-                                "{{address_id}}"
-                            ]
+                            "path": ["customers", "{{customer_id}}", "addresses", "{{address_id}}"]
                         },
-                        "description": "Update a specific address.\n\n**Requires:** Admin, Manager, or Customer role\n\n**Optional Fields:**\n- text: New address text\n- isDefault: Set as default address\n\n**Validation:**\n- Cannot update to a duplicate address (case-insensitive)\n- Returns 409 Conflict if updated address text already exists in another address\n\n**Note:** If isDefault is set to true, all other addresses will be set to non-default\n\n**Response:** Returns updated customer object"
+                        "description": "Update a specific address."
                     },
                     "response": []
                 },
                 {
                     "name": "Delete Address",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "if (pm.response.code === 200) {",
-                                    "    pm.test('Address deleted successfully', function() {",
-                                    "        pm.response.to.have.status(200);",
-                                    "    });",
-                                    "    ",
-                                    "    pm.test('Response has customer object', function() {",
-                                    "        var jsonData = pm.response.json();",
-                                    "        pm.expect(jsonData).to.have.property('customer');",
-                                    "    });",
-                                    "}"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
                     "request": {
                         "method": "DELETE",
                         "header": [],
                         "url": {
                             "raw": "{{base_url}}/customers/{{customer_id}}/addresses/{{address_id}}",
                             "host": ["{{base_url}}"],
-                            "path": [
-                                "customers",
-                                "{{customer_id}}",
-                                "addresses",
-                                "{{address_id}}"
-                            ]
+                            "path": ["customers", "{{customer_id}}", "addresses", "{{address_id}}"]
                         },
-                        "description": "Delete a specific address from a customer.\n\n**Requires:** Admin, Manager, or Customer role\n\n**Response:** Returns updated customer object without the deleted address"
+                        "description": "Delete a specific address from a customer."
                     },
                     "response": []
                 }
             ],
-            "description": "Customer management endpoints.\n\n**Authentication required for all endpoints**"
+            "description": "Customer management endpoints."
         },
         {
             "name": "Coupon Management",
             "item": [
                 {
                     "name": "Get All Coupons",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "if (pm.response.code === 200) {",
-                                    "    pm.test('Coupons list retrieved', function() {",
-                                    "        pm.response.to.have.status(200);",
-                                    "    });",
-                                    "    ",
-                                    "    pm.test('Response has coupons array', function() {",
-                                    "        var jsonData = pm.response.json();",
-                                    "        pm.expect(jsonData).to.have.property('data');",
-                                    "        pm.expect(jsonData.data).to.be.an('array');",
-                                    "    });",
-                                    "}"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
                     "request": {
                         "method": "GET",
                         "header": [],
@@ -429,36 +424,12 @@
                                 }
                             ]
                         },
-                        "description": "Get all coupons with pagination.\n\n**Requires:** Admin or Manager role\n\n**Query Parameters:**\n- page: Page number (default: 1)\n- limit: Items per page (default: 10)\n- q: Search query (searches in title and code)\n\n**Authorization Logic:**\n- Admin: Can see coupons from all tenants\n- Manager: Can only see coupons from their tenant (auto-filtered)\n\n**Response:** Array of coupons with pagination metadata"
+                        "description": "Get all coupons with pagination. Admin sees all, Manager sees tenant coupons."
                     },
                     "response": []
                 },
                 {
                     "name": "Get Coupon by ID",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "if (pm.response.code === 200) {",
-                                    "    pm.test('Coupon retrieved successfully', function() {",
-                                    "        pm.response.to.have.status(200);",
-                                    "    });",
-                                    "    ",
-                                    "    pm.test('Coupon has required fields', function() {",
-                                    "        var jsonData = pm.response.json();",
-                                    "        pm.expect(jsonData.coupon).to.have.property('title');",
-                                    "        pm.expect(jsonData.coupon).to.have.property('code');",
-                                    "        pm.expect(jsonData.coupon).to.have.property('discount');",
-                                    "        pm.expect(jsonData.coupon).to.have.property('validUpto');",
-                                    "        pm.expect(jsonData.coupon).to.have.property('tenantId');",
-                                    "    });",
-                                    "}"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
                     "request": {
                         "method": "GET",
                         "header": [],
@@ -467,7 +438,7 @@
                             "host": ["{{base_url}}"],
                             "path": ["coupons", "{{coupon_id}}"]
                         },
-                        "description": "Get a specific coupon by ID.\n\n**Requires:** Admin or Manager role\n\n**Authorization Logic:**\n- Admin: Can view any coupon\n- Manager: Can only view coupons from their tenant\n\n**Returns:** Coupon details"
+                        "description": "Get a specific coupon by ID."
                     },
                     "response": []
                 },
@@ -479,15 +450,9 @@
                             "script": {
                                 "exec": [
                                     "if (pm.response.code === 201) {",
-                                    "    pm.test('Coupon created successfully', function() {",
-                                    "        pm.response.to.have.status(201);",
-                                    "    });",
-                                    "    ",
-                                    "    pm.test('Response has coupon object', function() {",
-                                    "        var jsonData = pm.response.json();",
-                                    "        pm.expect(jsonData).to.have.property('coupon');",
-                                    "        pm.environment.set('coupon_id', jsonData.coupon._id);",
-                                    "    });",
+                                    "    var jsonData = pm.response.json();",
+                                    "    pm.environment.set('coupon_id', jsonData.coupon._id);",
+                                    "    pm.environment.set('coupon_code', jsonData.coupon.code);",
                                     "}"
                                 ],
                                 "type": "text/javascript"
@@ -504,14 +469,14 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"title\": \"Enjoy 10% Off\",\n    \"code\": \"ENJOY_10\",\n    \"discount\": 10,\n    \"validUpto\": \"2026-12-31\",\n    \"tenantId\": \"1\"\n}"
+                            "raw": "{\n    \"title\": \"Enjoy 10% Off\",\n    \"code\": \"ENJOY_10\",\n    \"discount\": 10,\n    \"validUpto\": \"2026-12-31\",\n    \"tenantId\": \"{{tenant_id}}\"\n}"
                         },
                         "url": {
                             "raw": "{{base_url}}/coupons",
                             "host": ["{{base_url}}"],
                             "path": ["coupons"]
                         },
-                        "description": "Create a new coupon (Admin version).\n\n**Requires:** Admin role\n\n**Required Fields:**\n- title: Coupon title/description\n- code: Coupon code (case-insensitive, alphanumeric + underscores only)\n- discount: Percentage discount (0-100)\n- validUpto: Expiration date (must be in future)\n- tenantId: Tenant ID (REQUIRED for admin)\n\n**Code Format:**\n- Codes are case-insensitive (ENJOY_10, enjoy_10, Enjoy_10 are all the same)\n- Automatically converted to lowercase on save\n- Must be unique per tenant\n\n**Admin Authorization:**\n- Admin MUST provide tenantId in request body\n- Can create coupons for any tenant\n\n**Response:** Returns created coupon object"
+                        "description": "Create a new coupon (Admin must provide tenantId)."
                     },
                     "response": []
                 },
@@ -523,15 +488,9 @@
                             "script": {
                                 "exec": [
                                     "if (pm.response.code === 201) {",
-                                    "    pm.test('Coupon created successfully', function() {",
-                                    "        pm.response.to.have.status(201);",
-                                    "    });",
-                                    "    ",
-                                    "    pm.test('Response has coupon object', function() {",
-                                    "        var jsonData = pm.response.json();",
-                                    "        pm.expect(jsonData).to.have.property('coupon');",
-                                    "        pm.environment.set('coupon_id', jsonData.coupon._id);",
-                                    "    });",
+                                    "    var jsonData = pm.response.json();",
+                                    "    pm.environment.set('coupon_id', jsonData.coupon._id);",
+                                    "    pm.environment.set('coupon_code', jsonData.coupon.code);",
                                     "}"
                                 ],
                                 "type": "text/javascript"
@@ -555,32 +514,12 @@
                             "host": ["{{base_url}}"],
                             "path": ["coupons"]
                         },
-                        "description": "Create a new coupon (Manager version).\n\n**Requires:** Manager role\n\n**Required Fields:**\n- title: Coupon title/description\n- code: Coupon code (case-insensitive, alphanumeric + underscores only)\n- discount: Percentage discount (0-100)\n- validUpto: Expiration date (must be in future)\n\n**Manager Authorization:**\n- Manager DOES NOT provide tenantId (automatically uses their tenant from JWT token)\n- Can only create coupons for their own tenant\n\n**Code Format:**\n- Codes are case-insensitive (SUMMER_20, summer_20, Summer_20 are all the same)\n- Automatically converted to lowercase on save\n- Must be unique per tenant\n\n**Response:** Returns created coupon object"
+                        "description": "Create a new coupon (Manager - tenantId from JWT)."
                     },
                     "response": []
                 },
                 {
                     "name": "Update Coupon",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "if (pm.response.code === 200) {",
-                                    "    pm.test('Coupon updated successfully', function() {",
-                                    "        pm.response.to.have.status(200);",
-                                    "    });",
-                                    "    ",
-                                    "    pm.test('Response has coupon object', function() {",
-                                    "        var jsonData = pm.response.json();",
-                                    "        pm.expect(jsonData).to.have.property('coupon');",
-                                    "    });",
-                                    "}"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
                     "request": {
                         "method": "PUT",
                         "header": [
@@ -598,32 +537,12 @@
                             "host": ["{{base_url}}"],
                             "path": ["coupons", "{{coupon_id}}"]
                         },
-                        "description": "Update coupon information.\n\n**Requires:** Admin or Manager role\n\n**Optional Fields:**\n- title: Updated title\n- code: Updated code (case-insensitive)\n- discount: Updated discount percentage (0-100)\n- validUpto: Updated expiration date (must be in future)\n\n**Authorization Logic:**\n- Admin: Can update any coupon\n- Manager: Can only update coupons from their tenant\n\n**Validation:**\n- If updating code, checks for duplicates within the same tenant\n- Code is automatically converted to lowercase\n\n**Response:** Returns updated coupon object"
+                        "description": "Update coupon information."
                     },
                     "response": []
                 },
                 {
                     "name": "Delete Coupon",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "if (pm.response.code === 200) {",
-                                    "    pm.test('Coupon deleted successfully', function() {",
-                                    "        pm.response.to.have.status(200);",
-                                    "    });",
-                                    "    ",
-                                    "    pm.test('Response has coupon object', function() {",
-                                    "        var jsonData = pm.response.json();",
-                                    "        pm.expect(jsonData).to.have.property('coupon');",
-                                    "    });",
-                                    "}"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
                     "request": {
                         "method": "DELETE",
                         "header": [],
@@ -632,28 +551,95 @@
                             "host": ["{{base_url}}"],
                             "path": ["coupons", "{{coupon_id}}"]
                         },
-                        "description": "Delete a coupon.\n\n**Requires:** Admin or Manager role\n\n**Authorization Logic:**\n- Admin: Can delete any coupon\n- Manager: Can only delete coupons from their tenant\n\n**Response:** Returns deleted coupon object"
+                        "description": "Delete a coupon."
                     },
                     "response": []
                 },
                 {
                     "name": "Verify Coupon",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"code\": \"{{coupon_code}}\",\n    \"tenantId\": \"{{tenant_id}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/coupons/verify",
+                            "host": ["{{base_url}}"],
+                            "path": ["coupons", "verify"]
+                        },
+                        "description": "Verify if a coupon code is valid for a tenant."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "[Edge] Verify Expired Coupon",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"code\": \"EXPIRED_CODE\",\n    \"tenantId\": \"{{tenant_id}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/coupons/verify",
+                            "host": ["{{base_url}}"],
+                            "path": ["coupons", "verify"]
+                        },
+                        "description": "Test: Verify an expired coupon. Expected: 400 error."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "[Edge] Verify Invalid Coupon",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"code\": \"INVALID_CODE_123\",\n    \"tenantId\": \"{{tenant_id}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/coupons/verify",
+                            "host": ["{{base_url}}"],
+                            "path": ["coupons", "verify"]
+                        },
+                        "description": "Test: Verify non-existent coupon. Expected: 404 error."
+                    },
+                    "response": []
+                }
+            ],
+            "description": "Coupon management endpoints with case-insensitive codes."
+        },
+        {
+            "name": "Order Management",
+            "item": [
+                {
+                    "name": "Create Order (Basic)",
                     "event": [
                         {
                             "listen": "test",
                             "script": {
                                 "exec": [
-                                    "if (pm.response.code === 200) {",
-                                    "    pm.test('Coupon verified successfully', function() {",
-                                    "        pm.response.to.have.status(200);",
-                                    "    });",
-                                    "    ",
-                                    "    pm.test('Response has coupon details', function() {",
-                                    "        var jsonData = pm.response.json();",
-                                    "        pm.expect(jsonData).to.have.property('coupon');",
-                                    "        pm.expect(jsonData.coupon).to.have.property('code');",
-                                    "        pm.expect(jsonData.coupon).to.have.property('discount');",
-                                    "    });",
+                                    "if (pm.response.code === 201) {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    pm.environment.set('order_id', jsonData.order._id);",
                                     "}"
                                 ],
                                 "type": "text/javascript"
@@ -670,19 +656,1400 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"code\": \"ENJOY_10\",\n    \"tenantId\": \"1\"\n}"
+                            "raw": "{\n    \"address\": \"123 Main Street, City, Country\",\n    \"items\": [\n        {\n            \"_id\": \"{{product_id}}\",\n            \"name\": \"Margherita Pizza\",\n            \"image\": \"https://example.com/pizza.jpg\",\n            \"qty\": 2,\n            \"priceConfiguration\": {\n                \"Size\": \"Medium\",\n                \"Crust\": \"Thin\"\n            },\n            \"toppings\": [],\n            \"totalPrice\": 500\n        }\n    ],\n    \"total\": 550,\n    \"paymentMode\": \"card\",\n    \"tenantId\": \"{{tenant_id}}\"\n}"
                         },
                         "url": {
-                            "raw": "{{base_url}}/coupons/verify",
+                            "raw": "{{base_url}}/orders",
                             "host": ["{{base_url}}"],
-                            "path": ["coupons", "verify"]
+                            "path": ["orders"]
                         },
-                        "description": "Verify if a coupon code is valid.\n\n**Requires:** Admin, Manager, or Customer role\n\n**Required Fields:**\n- code: Coupon code to verify (case-insensitive)\n- tenantId: Tenant ID for the coupon\n\n**Validation Checks:**\n- Coupon exists for the given tenant\n- Coupon has not expired (validUpto > now)\n\n**Use Case:**\n- Customers use this at checkout to validate coupon codes\n- Returns discount percentage if valid\n\n**Response (Success):**\n```json\n{\n  \"message\": \"Coupon is valid\",\n  \"coupon\": {\n    \"code\": \"enjoy_10\",\n    \"title\": \"Enjoy 10% Off\",\n    \"discount\": 10,\n    \"validUpto\": \"2026-12-31\"\n  }\n}\n```\n\n**Response (Error):**\n- 404: Coupon not found\n- 400: Coupon has expired"
+                        "description": "Create a new order.\n\n**Required Fields:**\n- address: Delivery address\n- items: Array of order items\n- total: Order total\n- paymentMode: card, cash, upi, netbanking, wallet\n- tenantId: Required for Admin and Customer\n\n**Price Validation:**\n- Server validates all prices against database\n- Products and toppings are validated\n- Tax and delivery charges are calculated server-side"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Create Order (With Coupon)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 201) {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    pm.environment.set('order_id', jsonData.order._id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"address\": \"123 Main Street, City, Country\",\n    \"items\": [\n        {\n            \"_id\": \"{{product_id}}\",\n            \"name\": \"Margherita Pizza\",\n            \"image\": \"https://example.com/pizza.jpg\",\n            \"qty\": 2,\n            \"priceConfiguration\": {\n                \"Size\": \"Medium\",\n                \"Crust\": \"Thin\"\n            },\n            \"toppings\": [],\n            \"totalPrice\": 500\n        }\n    ],\n    \"couponCode\": \"{{coupon_code}}\",\n    \"discount\": 50,\n    \"taxTotal\": 81,\n    \"deliveryCharge\": 30,\n    \"total\": 561,\n    \"paymentMode\": \"upi\",\n    \"tenantId\": \"{{tenant_id}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/orders",
+                            "host": ["{{base_url}}"],
+                            "path": ["orders"]
+                        },
+                        "description": "Create order with coupon code applied.\n\n**Optional Fields:**\n- couponCode: Valid coupon code\n- discount: Discount amount (validated against coupon)\n- taxTotal: Tax amount (validated against tax config)\n- deliveryCharge: Delivery charge (validated against delivery config)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Create Order (With Toppings)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 201) {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    pm.environment.set('order_id', jsonData.order._id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"address\": \"456 Oak Avenue, City, Country\",\n    \"items\": [\n        {\n            \"_id\": \"{{product_id}}\",\n            \"name\": \"Pepperoni Pizza\",\n            \"image\": \"https://example.com/pepperoni.jpg\",\n            \"qty\": 1,\n            \"priceConfiguration\": {\n                \"Size\": \"Large\",\n                \"Crust\": \"Thick\"\n            },\n            \"toppings\": [\n                {\n                    \"_id\": \"{{topping_id}}\",\n                    \"name\": \"Extra Cheese\",\n                    \"image\": \"https://example.com/cheese.jpg\",\n                    \"price\": 50\n                },\n                {\n                    \"_id\": \"{{topping_id_2}}\",\n                    \"name\": \"Jalapenos\",\n                    \"image\": \"https://example.com/jalapeno.jpg\",\n                    \"price\": 30\n                }\n            ],\n            \"totalPrice\": 430\n        }\n    ],\n    \"total\": 480,\n    \"paymentMode\": \"cash\",\n    \"tenantId\": \"{{tenant_id}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/orders",
+                            "host": ["{{base_url}}"],
+                            "path": ["orders"]
+                        },
+                        "description": "Create order with toppings. Topping prices are validated against database."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Create Order (Multiple Items)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 201) {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    pm.environment.set('order_id', jsonData.order._id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"address\": \"789 Pine Road, City, Country\",\n    \"items\": [\n        {\n            \"_id\": \"{{product_id}}\",\n            \"name\": \"Margherita Pizza\",\n            \"image\": \"https://example.com/margherita.jpg\",\n            \"qty\": 2,\n            \"priceConfiguration\": {\n                \"Size\": \"Medium\",\n                \"Crust\": \"Thin\"\n            },\n            \"toppings\": [],\n            \"totalPrice\": 400\n        },\n        {\n            \"_id\": \"{{product_id_2}}\",\n            \"name\": \"Garlic Bread\",\n            \"image\": \"https://example.com/garlic.jpg\",\n            \"qty\": 1,\n            \"priceConfiguration\": {\n                \"Size\": \"Regular\"\n            },\n            \"toppings\": [],\n            \"totalPrice\": 120\n        },\n        {\n            \"_id\": \"{{product_id_3}}\",\n            \"name\": \"Coca Cola\",\n            \"image\": \"https://example.com/coke.jpg\",\n            \"qty\": 3,\n            \"priceConfiguration\": {\n                \"Size\": \"500ml\"\n            },\n            \"toppings\": [],\n            \"totalPrice\": 150\n        }\n    ],\n    \"total\": 750,\n    \"paymentMode\": \"wallet\",\n    \"tenantId\": \"{{tenant_id}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/orders",
+                            "host": ["{{base_url}}"],
+                            "path": ["orders"]
+                        },
+                        "description": "Create order with multiple different items."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get All Orders",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/orders?page={{page}}&limit={{limit}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["orders"],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "{{page}}"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "{{limit}}"
+                                },
+                                {
+                                    "key": "tenantId",
+                                    "value": "{{tenant_id}}",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "status",
+                                    "value": "pending",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "customerId",
+                                    "value": "",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "q",
+                                    "value": "",
+                                    "disabled": true
+                                }
+                            ]
+                        },
+                        "description": "Get all orders with filters.\n\n**Role-based filtering:**\n- Admin: All orders, can filter by tenantId\n- Manager: Only their tenant's orders\n- Customer: Only their own orders\n\n**Query Parameters:**\n- page, limit: Pagination\n- tenantId: Filter by tenant (Admin only)\n- status: Filter by status\n- customerId: Filter by customer\n- q: Search query"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get All Orders (Filter by Status)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/orders?status=pending",
+                            "host": ["{{base_url}}"],
+                            "path": ["orders"],
+                            "query": [
+                                {
+                                    "key": "status",
+                                    "value": "pending"
+                                }
+                            ]
+                        },
+                        "description": "Get orders filtered by status.\n\n**Valid statuses:**\n- pending\n- confirmed\n- preparing\n- out_for_delivery\n- delivered\n- cancelled"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get All Orders (Filter by Tenant)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/orders?tenantId={{tenant_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["orders"],
+                            "query": [
+                                {
+                                    "key": "tenantId",
+                                    "value": "{{tenant_id}}"
+                                }
+                            ]
+                        },
+                        "description": "Get orders filtered by tenant (Admin only)."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get My Orders (Customer)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/orders/my-orders",
+                            "host": ["{{base_url}}"],
+                            "path": ["orders", "my-orders"]
+                        },
+                        "description": "Get all orders for the current customer (Customer role only)."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Order by ID",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/orders/{{order_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["orders", "{{order_id}}"]
+                        },
+                        "description": "Get a specific order by ID.\n\n**Authorization:**\n- Admin: Can view any order\n- Manager: Can only view orders from their tenant\n- Customer: Can only view their own orders"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update Order Status (Confirm)",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"status\": \"confirmed\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/orders/{{order_id}}/status",
+                            "host": ["{{base_url}}"],
+                            "path": ["orders", "{{order_id}}", "status"]
+                        },
+                        "description": "Update order status to confirmed."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update Order Status (Preparing)",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"status\": \"preparing\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/orders/{{order_id}}/status",
+                            "host": ["{{base_url}}"],
+                            "path": ["orders", "{{order_id}}", "status"]
+                        },
+                        "description": "Update order status to preparing."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update Order Status (Out for Delivery)",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"status\": \"out_for_delivery\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/orders/{{order_id}}/status",
+                            "host": ["{{base_url}}"],
+                            "path": ["orders", "{{order_id}}", "status"]
+                        },
+                        "description": "Update order status to out_for_delivery."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update Order Status (Delivered)",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"status\": \"delivered\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/orders/{{order_id}}/status",
+                            "host": ["{{base_url}}"],
+                            "path": ["orders", "{{order_id}}", "status"]
+                        },
+                        "description": "Update order status to delivered."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update Order Status (Cancel - Customer)",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"status\": \"cancelled\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/orders/{{order_id}}/status",
+                            "host": ["{{base_url}}"],
+                            "path": ["orders", "{{order_id}}", "status"]
+                        },
+                        "description": "Cancel an order.\n\n**Customer restrictions:**\n- Customers can ONLY cancel orders (not other status updates)\n- Customers can only cancel their OWN orders"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Delete Order",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/orders/{{order_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["orders", "{{order_id}}"]
+                        },
+                        "description": "Delete an order.\n\n**Requires:** Admin or Manager role\n\n**Manager restriction:** Can only delete orders from their tenant"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "[Edge] Create Order - Missing Address",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"items\": [\n        {\n            \"_id\": \"{{product_id}}\",\n            \"name\": \"Pizza\",\n            \"image\": \"https://example.com/pizza.jpg\",\n            \"qty\": 1,\n            \"priceConfiguration\": {\"Size\": \"Medium\"},\n            \"toppings\": [],\n            \"totalPrice\": 250\n        }\n    ],\n    \"total\": 250,\n    \"paymentMode\": \"cash\",\n    \"tenantId\": \"{{tenant_id}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/orders",
+                            "host": ["{{base_url}}"],
+                            "path": ["orders"]
+                        },
+                        "description": "Test: Create order without address. Expected: 400 validation error."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "[Edge] Create Order - Empty Items",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"address\": \"123 Main Street\",\n    \"items\": [],\n    \"total\": 0,\n    \"paymentMode\": \"cash\",\n    \"tenantId\": \"{{tenant_id}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/orders",
+                            "host": ["{{base_url}}"],
+                            "path": ["orders"]
+                        },
+                        "description": "Test: Create order with empty items array. Expected: 400 validation error."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "[Edge] Create Order - Invalid Payment Mode",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"address\": \"123 Main Street\",\n    \"items\": [\n        {\n            \"_id\": \"{{product_id}}\",\n            \"name\": \"Pizza\",\n            \"image\": \"https://example.com/pizza.jpg\",\n            \"qty\": 1,\n            \"priceConfiguration\": {\"Size\": \"Medium\"},\n            \"toppings\": [],\n            \"totalPrice\": 250\n        }\n    ],\n    \"total\": 250,\n    \"paymentMode\": \"bitcoin\",\n    \"tenantId\": \"{{tenant_id}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/orders",
+                            "host": ["{{base_url}}"],
+                            "path": ["orders"]
+                        },
+                        "description": "Test: Create order with invalid payment mode. Expected: 400 validation error.\n\nValid modes: card, cash, upi, netbanking, wallet"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "[Edge] Create Order - Invalid Coupon",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"address\": \"123 Main Street\",\n    \"items\": [\n        {\n            \"_id\": \"{{product_id}}\",\n            \"name\": \"Pizza\",\n            \"image\": \"https://example.com/pizza.jpg\",\n            \"qty\": 1,\n            \"priceConfiguration\": {\"Size\": \"Medium\"},\n            \"toppings\": [],\n            \"totalPrice\": 250\n        }\n    ],\n    \"couponCode\": \"INVALID_COUPON_XYZ\",\n    \"total\": 250,\n    \"paymentMode\": \"cash\",\n    \"tenantId\": \"{{tenant_id}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/orders",
+                            "host": ["{{base_url}}"],
+                            "path": ["orders"]
+                        },
+                        "description": "Test: Create order with invalid coupon code. Expected: 400 error."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "[Edge] Create Order - Price Mismatch",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"address\": \"123 Main Street\",\n    \"items\": [\n        {\n            \"_id\": \"{{product_id}}\",\n            \"name\": \"Pizza\",\n            \"image\": \"https://example.com/pizza.jpg\",\n            \"qty\": 1,\n            \"priceConfiguration\": {\"Size\": \"Medium\"},\n            \"toppings\": [],\n            \"totalPrice\": 1\n        }\n    ],\n    \"total\": 1,\n    \"paymentMode\": \"cash\",\n    \"tenantId\": \"{{tenant_id}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/orders",
+                            "host": ["{{base_url}}"],
+                            "path": ["orders"]
+                        },
+                        "description": "Test: Create order with wrong price. Expected: 400 price validation error.\n\nServer validates all prices against database."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "[Edge] Create Order - Invalid Product ID",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"address\": \"123 Main Street\",\n    \"items\": [\n        {\n            \"_id\": \"invalid_product_id_123\",\n            \"name\": \"Non-existent Product\",\n            \"image\": \"https://example.com/fake.jpg\",\n            \"qty\": 1,\n            \"priceConfiguration\": {\"Size\": \"Medium\"},\n            \"toppings\": [],\n            \"totalPrice\": 250\n        }\n    ],\n    \"total\": 250,\n    \"paymentMode\": \"cash\",\n    \"tenantId\": \"{{tenant_id}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/orders",
+                            "host": ["{{base_url}}"],
+                            "path": ["orders"]
+                        },
+                        "description": "Test: Create order with non-existent product. Expected: 400 error."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "[Edge] Create Order - Zero Quantity",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"address\": \"123 Main Street\",\n    \"items\": [\n        {\n            \"_id\": \"{{product_id}}\",\n            \"name\": \"Pizza\",\n            \"image\": \"https://example.com/pizza.jpg\",\n            \"qty\": 0,\n            \"priceConfiguration\": {\"Size\": \"Medium\"},\n            \"toppings\": [],\n            \"totalPrice\": 250\n        }\n    ],\n    \"total\": 250,\n    \"paymentMode\": \"cash\",\n    \"tenantId\": \"{{tenant_id}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/orders",
+                            "host": ["{{base_url}}"],
+                            "path": ["orders"]
+                        },
+                        "description": "Test: Create order with zero quantity. Expected: 400 validation error."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "[Edge] Get Order - Not Found",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/orders/507f1f77bcf86cd799439011",
+                            "host": ["{{base_url}}"],
+                            "path": ["orders", "507f1f77bcf86cd799439011"]
+                        },
+                        "description": "Test: Get non-existent order. Expected: 404 error."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "[Edge] Get Order - Invalid ID Format",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/orders/invalid-id",
+                            "host": ["{{base_url}}"],
+                            "path": ["orders", "invalid-id"]
+                        },
+                        "description": "Test: Get order with invalid MongoDB ID format. Expected: 400 validation error."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "[Edge] Update Status - Invalid Status",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"status\": \"invalid_status\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/orders/{{order_id}}/status",
+                            "host": ["{{base_url}}"],
+                            "path": ["orders", "{{order_id}}", "status"]
+                        },
+                        "description": "Test: Update with invalid status. Expected: 400 validation error.\n\nValid statuses: pending, confirmed, preparing, out_for_delivery, delivered, cancelled"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "[Edge] Customer Update Status - Not Cancel",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"status\": \"delivered\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/orders/{{order_id}}/status",
+                            "host": ["{{base_url}}"],
+                            "path": ["orders", "{{order_id}}", "status"]
+                        },
+                        "description": "Test: Customer trying to set status other than cancelled. Expected: 403 error.\n\nCustomers can ONLY cancel orders."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "[Edge] Admin - Missing TenantId",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"address\": \"123 Main Street\",\n    \"items\": [\n        {\n            \"_id\": \"{{product_id}}\",\n            \"name\": \"Pizza\",\n            \"image\": \"https://example.com/pizza.jpg\",\n            \"qty\": 1,\n            \"priceConfiguration\": {\"Size\": \"Medium\"},\n            \"toppings\": [],\n            \"totalPrice\": 250\n        }\n    ],\n    \"total\": 250,\n    \"paymentMode\": \"cash\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/orders",
+                            "host": ["{{base_url}}"],
+                            "path": ["orders"]
+                        },
+                        "description": "Test: Admin creating order without tenantId. Expected: 400 error.\n\nAdmin must provide tenantId in request body."
                     },
                     "response": []
                 }
             ],
-            "description": "Coupon management endpoints.\n\n**Key Features:**\n- Case-insensitive coupon codes (ENJOY_10 = enjoy_10)\n- Admin can manage coupons for any tenant (must provide tenantId)\n- Manager can only manage coupons for their tenant (tenantId from JWT)\n- Duplicate code validation per tenant\n\n**Authentication required for all endpoints**"
+            "description": "Order management endpoints with full price validation.\n\n**Payment Modes:** card, cash, upi, netbanking, wallet\n\n**Order Statuses:** pending, confirmed, preparing, out_for_delivery, delivered, cancelled\n\n**Server-side Validation:**\n- Product prices\n- Topping prices\n- Coupon validity\n- Tax calculation\n- Delivery charges"
+        },
+        {
+            "name": "Tax Configuration",
+            "item": [
+                {
+                    "name": "Create Tax Config (Admin)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 201) {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    pm.environment.set('tax_config_id', jsonData.config._id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"taxes\": [\n        {\n            \"name\": \"CGST\",\n            \"rate\": 9,\n            \"isActive\": true\n        },\n        {\n            \"name\": \"SGST\",\n            \"rate\": 9,\n            \"isActive\": true\n        }\n    ],\n    \"tenantId\": \"{{tenant_id}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/taxes",
+                            "host": ["{{base_url}}"],
+                            "path": ["taxes"]
+                        },
+                        "description": "Create tax configuration for a tenant.\n\n**Admin:** Must provide tenantId\n**Manager:** Uses tenant from JWT\n\n**Tax Fields:**\n- name: Tax name (e.g., CGST, SGST, VAT)\n- rate: Tax percentage (0-100)\n- isActive: Enable/disable individual tax"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Create Tax Config (Manager)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 201) {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    pm.environment.set('tax_config_id', jsonData.config._id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"taxes\": [\n        {\n            \"name\": \"CGST\",\n            \"rate\": 9,\n            \"isActive\": true\n        },\n        {\n            \"name\": \"SGST\",\n            \"rate\": 9,\n            \"isActive\": true\n        }\n    ]\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/taxes",
+                            "host": ["{{base_url}}"],
+                            "path": ["taxes"]
+                        },
+                        "description": "Create tax configuration (Manager version - no tenantId needed)."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Create Tax Config (GST + Service Tax)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"taxes\": [\n        {\n            \"name\": \"CGST\",\n            \"rate\": 2.5,\n            \"isActive\": true\n        },\n        {\n            \"name\": \"SGST\",\n            \"rate\": 2.5,\n            \"isActive\": true\n        },\n        {\n            \"name\": \"Service Tax\",\n            \"rate\": 5,\n            \"isActive\": false\n        }\n    ],\n    \"tenantId\": \"{{tenant_id}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/taxes",
+                            "host": ["{{base_url}}"],
+                            "path": ["taxes"]
+                        },
+                        "description": "Example: Multiple tax components with different active states."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Tax Config",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/taxes?tenantId={{tenant_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["taxes"],
+                            "query": [
+                                {
+                                    "key": "tenantId",
+                                    "value": "{{tenant_id}}"
+                                }
+                            ]
+                        },
+                        "description": "Get tax configuration for a tenant.\n\n**Admin:** Must provide tenantId query param\n**Manager:** Uses tenant from JWT\n**Customer:** Must provide tenantId"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update Tax Config",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"taxes\": [\n        {\n            \"name\": \"CGST\",\n            \"rate\": 6,\n            \"isActive\": true\n        },\n        {\n            \"name\": \"SGST\",\n            \"rate\": 6,\n            \"isActive\": true\n        },\n        {\n            \"name\": \"Cess\",\n            \"rate\": 1,\n            \"isActive\": true\n        }\n    ],\n    \"tenantId\": \"{{tenant_id}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/taxes",
+                            "host": ["{{base_url}}"],
+                            "path": ["taxes"]
+                        },
+                        "description": "Update tax configuration (upsert - creates if not exists)."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Toggle Tax (Enable)",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"taxName\": \"CGST\",\n    \"isActive\": true,\n    \"tenantId\": \"{{tenant_id}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/taxes/toggle",
+                            "host": ["{{base_url}}"],
+                            "path": ["taxes", "toggle"]
+                        },
+                        "description": "Enable a specific tax component."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Toggle Tax (Disable)",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"taxName\": \"SGST\",\n    \"isActive\": false,\n    \"tenantId\": \"{{tenant_id}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/taxes/toggle",
+                            "host": ["{{base_url}}"],
+                            "path": ["taxes", "toggle"]
+                        },
+                        "description": "Disable a specific tax component. Disabled taxes are not applied to orders."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Delete Tax Config",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"tenantId\": \"{{tenant_id}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/taxes",
+                            "host": ["{{base_url}}"],
+                            "path": ["taxes"]
+                        },
+                        "description": "Delete tax configuration for a tenant."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "[Edge] Create Tax - Already Exists",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"taxes\": [\n        {\n            \"name\": \"VAT\",\n            \"rate\": 10,\n            \"isActive\": true\n        }\n    ],\n    \"tenantId\": \"{{tenant_id}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/taxes",
+                            "host": ["{{base_url}}"],
+                            "path": ["taxes"]
+                        },
+                        "description": "Test: Create tax config when one already exists. Expected: 409 Conflict.\n\nUse PUT to update existing config."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "[Edge] Create Tax - Empty Array",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"taxes\": [],\n    \"tenantId\": \"{{tenant_id}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/taxes",
+                            "host": ["{{base_url}}"],
+                            "path": ["taxes"]
+                        },
+                        "description": "Test: Create tax config with empty taxes array. Expected: 400 validation error."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "[Edge] Create Tax - Invalid Rate",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"taxes\": [\n        {\n            \"name\": \"Invalid Tax\",\n            \"rate\": 150,\n            \"isActive\": true\n        }\n    ],\n    \"tenantId\": \"{{tenant_id}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/taxes",
+                            "host": ["{{base_url}}"],
+                            "path": ["taxes"]
+                        },
+                        "description": "Test: Create tax with rate > 100. Expected: 400 validation error."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "[Edge] Toggle Tax - Not Found",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"taxName\": \"NON_EXISTENT_TAX\",\n    \"isActive\": true,\n    \"tenantId\": \"{{tenant_id}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/taxes/toggle",
+                            "host": ["{{base_url}}"],
+                            "path": ["taxes", "toggle"]
+                        },
+                        "description": "Test: Toggle non-existent tax. Expected: 404 error."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "[Edge] Get Tax - No Config",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/taxes?tenantId=non_existent_tenant",
+                            "host": ["{{base_url}}"],
+                            "path": ["taxes"],
+                            "query": [
+                                {
+                                    "key": "tenantId",
+                                    "value": "non_existent_tenant"
+                                }
+                            ]
+                        },
+                        "description": "Test: Get tax config for tenant without config. Expected: 404 error."
+                    },
+                    "response": []
+                }
+            ],
+            "description": "Tax configuration endpoints.\n\n**Features:**\n- Multiple tax components per tenant\n- Individual tax toggle (enable/disable)\n- Tax applied to taxable amount (after discount)\n- Only active taxes are calculated"
+        },
+        {
+            "name": "Delivery Configuration",
+            "item": [
+                {
+                    "name": "Create Delivery Config (Admin)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 201) {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    pm.environment.set('delivery_config_id', jsonData.config._id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"isActive\": true,\n    \"orderValueTiers\": [\n        {\n            \"minOrderValue\": 0,\n            \"deliveryCharge\": 50\n        },\n        {\n            \"minOrderValue\": 200,\n            \"deliveryCharge\": 30\n        },\n        {\n            \"minOrderValue\": 500,\n            \"deliveryCharge\": 0\n        }\n    ],\n    \"freeDeliveryThreshold\": 1000,\n    \"tenantId\": \"{{tenant_id}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/delivery",
+                            "host": ["{{base_url}}"],
+                            "path": ["delivery"]
+                        },
+                        "description": "Create delivery configuration for a tenant.\n\n**Fields:**\n- isActive: Enable/disable delivery charges\n- orderValueTiers: Array of tiers based on order value\n- freeDeliveryThreshold: Optional threshold for free delivery\n\n**Tier Logic:**\n- Orders < 200: Rs 50 delivery\n- Orders 200-500: Rs 30 delivery\n- Orders >= 500: Free delivery\n- Orders >= 1000: Always free (threshold)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Create Delivery Config (Manager)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 201) {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    pm.environment.set('delivery_config_id', jsonData.config._id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"isActive\": true,\n    \"orderValueTiers\": [\n        {\n            \"minOrderValue\": 0,\n            \"deliveryCharge\": 40\n        },\n        {\n            \"minOrderValue\": 300,\n            \"deliveryCharge\": 20\n        },\n        {\n            \"minOrderValue\": 600,\n            \"deliveryCharge\": 0\n        }\n    ],\n    \"freeDeliveryThreshold\": 800\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/delivery",
+                            "host": ["{{base_url}}"],
+                            "path": ["delivery"]
+                        },
+                        "description": "Create delivery configuration (Manager version - tenantId from JWT)."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Create Delivery Config (Future Distance-based)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"isActive\": true,\n    \"orderValueTiers\": [\n        {\n            \"minOrderValue\": 0,\n            \"deliveryCharge\": 50,\n            \"perKmCharge\": 10\n        },\n        {\n            \"minOrderValue\": 300,\n            \"deliveryCharge\": 30,\n            \"perKmCharge\": 5\n        },\n        {\n            \"minOrderValue\": 700,\n            \"deliveryCharge\": 0,\n            \"perKmCharge\": 0\n        }\n    ],\n    \"freeDeliveryThreshold\": 1500,\n    \"tenantId\": \"{{tenant_id}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/delivery",
+                            "host": ["{{base_url}}"],
+                            "path": ["delivery"]
+                        },
+                        "description": "Example: Config with perKmCharge for future distance-based pricing.\n\n**Note:** perKmCharge is stored but not used until OSRM is integrated."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Delivery Config",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/delivery?tenantId={{tenant_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["delivery"],
+                            "query": [
+                                {
+                                    "key": "tenantId",
+                                    "value": "{{tenant_id}}"
+                                }
+                            ]
+                        },
+                        "description": "Get delivery configuration for a tenant."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Calculate Delivery Charge",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/delivery/calculate?tenantId={{tenant_id}}&orderSubTotal=250",
+                            "host": ["{{base_url}}"],
+                            "path": ["delivery", "calculate"],
+                            "query": [
+                                {
+                                    "key": "tenantId",
+                                    "value": "{{tenant_id}}"
+                                },
+                                {
+                                    "key": "orderSubTotal",
+                                    "value": "250"
+                                }
+                            ]
+                        },
+                        "description": "Calculate delivery charge for a given order subtotal.\n\n**Use Case:** Checkout preview before placing order.\n\n**Response includes:**\n- deliveryCharge: Amount to charge\n- isFreeDelivery: Boolean\n- freeDeliveryReason: disabled, threshold, or tier\n- appliedTier: Which tier was applied"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Calculate Delivery (Low Order)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/delivery/calculate?tenantId={{tenant_id}}&orderSubTotal=100",
+                            "host": ["{{base_url}}"],
+                            "path": ["delivery", "calculate"],
+                            "query": [
+                                {
+                                    "key": "tenantId",
+                                    "value": "{{tenant_id}}"
+                                },
+                                {
+                                    "key": "orderSubTotal",
+                                    "value": "100"
+                                }
+                            ]
+                        },
+                        "description": "Calculate for low order value. Expected: Highest delivery charge tier."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Calculate Delivery (Medium Order)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/delivery/calculate?tenantId={{tenant_id}}&orderSubTotal=350",
+                            "host": ["{{base_url}}"],
+                            "path": ["delivery", "calculate"],
+                            "query": [
+                                {
+                                    "key": "tenantId",
+                                    "value": "{{tenant_id}}"
+                                },
+                                {
+                                    "key": "orderSubTotal",
+                                    "value": "350"
+                                }
+                            ]
+                        },
+                        "description": "Calculate for medium order value. Expected: Middle tier charge."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Calculate Delivery (High Order)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/delivery/calculate?tenantId={{tenant_id}}&orderSubTotal=600",
+                            "host": ["{{base_url}}"],
+                            "path": ["delivery", "calculate"],
+                            "query": [
+                                {
+                                    "key": "tenantId",
+                                    "value": "{{tenant_id}}"
+                                },
+                                {
+                                    "key": "orderSubTotal",
+                                    "value": "600"
+                                }
+                            ]
+                        },
+                        "description": "Calculate for high order value. Expected: Free delivery (tier)."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Calculate Delivery (Above Threshold)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/delivery/calculate?tenantId={{tenant_id}}&orderSubTotal=1200",
+                            "host": ["{{base_url}}"],
+                            "path": ["delivery", "calculate"],
+                            "query": [
+                                {
+                                    "key": "tenantId",
+                                    "value": "{{tenant_id}}"
+                                },
+                                {
+                                    "key": "orderSubTotal",
+                                    "value": "1200"
+                                }
+                            ]
+                        },
+                        "description": "Calculate for order above threshold. Expected: Free delivery (threshold reason)."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update Delivery Config",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"isActive\": true,\n    \"orderValueTiers\": [\n        {\n            \"minOrderValue\": 0,\n            \"deliveryCharge\": 60\n        },\n        {\n            \"minOrderValue\": 250,\n            \"deliveryCharge\": 40\n        },\n        {\n            \"minOrderValue\": 400,\n            \"deliveryCharge\": 20\n        },\n        {\n            \"minOrderValue\": 600,\n            \"deliveryCharge\": 0\n        }\n    ],\n    \"freeDeliveryThreshold\": 1200,\n    \"tenantId\": \"{{tenant_id}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/delivery",
+                            "host": ["{{base_url}}"],
+                            "path": ["delivery"]
+                        },
+                        "description": "Update delivery configuration (upsert - creates if not exists)."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Toggle Delivery (Disable)",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"isActive\": false,\n    \"tenantId\": \"{{tenant_id}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/delivery/toggle",
+                            "host": ["{{base_url}}"],
+                            "path": ["delivery", "toggle"]
+                        },
+                        "description": "Disable delivery charges. When disabled, delivery is free."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Toggle Delivery (Enable)",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"isActive\": true,\n    \"tenantId\": \"{{tenant_id}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/delivery/toggle",
+                            "host": ["{{base_url}}"],
+                            "path": ["delivery", "toggle"]
+                        },
+                        "description": "Enable delivery charges."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Delete Delivery Config",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"tenantId\": \"{{tenant_id}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/delivery",
+                            "host": ["{{base_url}}"],
+                            "path": ["delivery"]
+                        },
+                        "description": "Delete delivery configuration for a tenant."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "[Edge] Create Delivery - Already Exists",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"isActive\": true,\n    \"orderValueTiers\": [\n        {\n            \"minOrderValue\": 0,\n            \"deliveryCharge\": 25\n        }\n    ],\n    \"tenantId\": \"{{tenant_id}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/delivery",
+                            "host": ["{{base_url}}"],
+                            "path": ["delivery"]
+                        },
+                        "description": "Test: Create config when one exists. Expected: 409 Conflict.\n\nUse PUT to update."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "[Edge] Create Delivery - Empty Tiers",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"isActive\": true,\n    \"orderValueTiers\": [],\n    \"tenantId\": \"{{tenant_id}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/delivery",
+                            "host": ["{{base_url}}"],
+                            "path": ["delivery"]
+                        },
+                        "description": "Test: Create with empty tiers array. Expected: 400 validation error."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "[Edge] Create Delivery - Negative Charge",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"isActive\": true,\n    \"orderValueTiers\": [\n        {\n            \"minOrderValue\": 0,\n            \"deliveryCharge\": -10\n        }\n    ],\n    \"tenantId\": \"{{tenant_id}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/delivery",
+                            "host": ["{{base_url}}"],
+                            "path": ["delivery"]
+                        },
+                        "description": "Test: Create with negative delivery charge. Expected: 400 validation error."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "[Edge] Calculate - Missing Params",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/delivery/calculate?tenantId={{tenant_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["delivery", "calculate"],
+                            "query": [
+                                {
+                                    "key": "tenantId",
+                                    "value": "{{tenant_id}}"
+                                }
+                            ]
+                        },
+                        "description": "Test: Calculate without orderSubTotal. Expected: 400 error."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "[Edge] Get Delivery - No Config",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/delivery?tenantId=non_existent_tenant",
+                            "host": ["{{base_url}}"],
+                            "path": ["delivery"],
+                            "query": [
+                                {
+                                    "key": "tenantId",
+                                    "value": "non_existent_tenant"
+                                }
+                            ]
+                        },
+                        "description": "Test: Get config for tenant without delivery config. Expected: 404 error."
+                    },
+                    "response": []
+                }
+            ],
+            "description": "Delivery configuration endpoints.\n\n**Features:**\n- Order value-based tiers\n- Free delivery threshold\n- Enable/disable toggle\n- Future-ready for distance-based pricing (OSRM)\n\n**Tier Logic:**\nApplies the highest minOrderValue tier where order >= minOrderValue"
         }
     ],
     "variable": [

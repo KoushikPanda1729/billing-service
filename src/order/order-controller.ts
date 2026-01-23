@@ -38,6 +38,7 @@ export class OrderController {
             items,
             couponCode,
             discount,
+            deliveryCharge,
             taxTotal,
             total,
             paymentMode,
@@ -47,6 +48,7 @@ export class OrderController {
             items: Order["items"];
             couponCode?: string;
             discount?: number;
+            deliveryCharge?: number;
             taxTotal?: number;
             total: number;
             paymentMode: Order["paymentMode"];
@@ -122,7 +124,8 @@ export class OrderController {
             total,
             coupon,
             discount,
-            taxTotal
+            taxTotal,
+            deliveryCharge
         );
 
         if (!priceValidation.isValid) {
@@ -145,6 +148,7 @@ export class OrderController {
             items,
             subTotal: priceValidation.subTotal,
             discount: priceValidation.discountAmount,
+            deliveryCharge: priceValidation.deliveryCharge,
             taxes: priceValidation.taxes,
             taxTotal: priceValidation.taxTotal,
             total: priceValidation.finalTotal,

@@ -41,6 +41,7 @@ export interface Order {
     subTotal: number;
     couponCode?: string;
     discount: number;
+    deliveryCharge: number;
     taxes: TaxBreakdownItem[];
     taxTotal: number;
     total: number;
