@@ -7,6 +7,7 @@ import {
 import { OrderController } from "./order-controller";
 import { OrderService } from "./order-service";
 import { CouponService } from "../coupon/coupon-service";
+import { IdempotencyService } from "../idempotency/idempotency-service";
 import logger from "../config/logger";
 import { asyncHandler } from "../common/utils/asyncHandler";
 import { authenticate } from "../common/middleware/authenticate";
@@ -17,16 +18,19 @@ import orderValidator from "./order-validator";
 import updateStatusValidator from "./update-status-validator";
 import OrderModel from "./order-model";
 import CouponModel from "../coupon/coupon-model";
+import IdempotencyModel from "../idempotency/idempotency-model";
 import { idempotencyMiddleware } from "../idempotency";
 
 const router = Router();
 
 const orderService = new OrderService(OrderModel);
 const couponService = new CouponService(CouponModel);
+const idempotencyService = new IdempotencyService(IdempotencyModel);
 
 const orderController = new OrderController(
     orderService,
     couponService,
+    idempotencyService,
     logger
 );
 

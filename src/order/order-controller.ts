@@ -1,9 +1,11 @@
 import { type Request, type Response, type NextFunction } from "express";
 import { validationResult } from "express-validator";
 import createHttpError from "http-errors";
+import mongoose from "mongoose";
 import type { Order, OrderStatus } from "./order-types";
 import type { OrderService } from "./order-service";
 import type { CouponService } from "../coupon/coupon-service";
+import type { IdempotencyService } from "../idempotency/idempotency-service";
 import { PriceCalculator } from "./price-calculator";
 import type { Logger } from "winston";
 import { Roles } from "../common/constants/roles";
@@ -14,6 +16,7 @@ export class OrderController {
     constructor(
         private orderService: OrderService,
         private couponService: CouponService,
+        private idempotencyService: IdempotencyService,
         private logger: Logger
     ) {
         this.priceCalculator = new PriceCalculator();
@@ -162,10 +165,49 @@ export class OrderController {
             orderData.couponCode = couponCode;
         }
 
-        const order = await this.orderService.create(orderData);
+        // Use MongoDB transaction to ensure both order and idempotency record are saved atomically
+        const session = await mongoose.startSession();
 
-        this.logger.info("Order created successfully " + order._id?.toString());
-        res.status(201).json({ message: "Order created", order });
+        try {
+            session.startTransaction();
+
+            // Create order within transaction
+            const order = await this.orderService.createWithSession(
+                orderData,
+                session
+            );
+
+            // Save idempotency record within same transaction (if idempotency key provided)
+            if (req.idempotency) {
+                const responseBody = { message: "Order created", order };
+                await this.idempotencyService.createWithSession(
+                    {
+                        key: req.idempotency.key,
+                        userId: req.idempotency.userId,
+                        endpoint: req.idempotency.endpoint,
+                        statusCode: 201,
+                        response: responseBody,
+                    },
+                    session
+                );
+            }
+
+            // Commit transaction - both are saved or neither
+            await session.commitTransaction();
+
+            this.logger.info(
+                "Order created successfully with transaction: " +
+                    order._id?.toString()
+            );
+            res.status(201).json({ message: "Order created", order });
+        } catch (error) {
+            // Rollback transaction - neither order nor idempotency saved
+            await session.abortTransaction();
+            this.logger.error("Transaction failed, rolled back:", error);
+            throw error;
+        } finally {
+            await session.endSession();
+        }
     }
 
     async updateStatus(

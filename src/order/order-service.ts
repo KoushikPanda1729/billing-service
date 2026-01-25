@@ -1,5 +1,5 @@
 import type { Order, OrderStatus, PaymentStatus } from "./order-types";
-import type { AggregatePaginateModel, Model } from "mongoose";
+import type { AggregatePaginateModel, ClientSession, Model } from "mongoose";
 import mongoose from "mongoose";
 
 export class OrderService {
@@ -8,6 +8,11 @@ export class OrderService {
     async create(orderData: Order) {
         const order = new this.orderModel(orderData);
         return order.save();
+    }
+
+    async createWithSession(orderData: Order, session: ClientSession) {
+        const order = new this.orderModel(orderData);
+        return order.save({ session });
     }
 
     async updateStatus(orderId: string, status: OrderStatus) {

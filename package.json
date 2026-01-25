@@ -6,6 +6,7 @@
     "type": "module",
     "scripts": {
         "dev": "nodemon --exec tsx src/server.ts",
+        "build": "tsc",
         "format:fix": "npx prettier . --write \"src/**/*.ts\"",
         "format:check": "npx prettier . --check \"src/**/*.ts\"",
         "lint:fix": "npx eslint . --fix \"src/**/*.ts\"",

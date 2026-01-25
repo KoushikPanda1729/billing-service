@@ -1,4 +1,4 @@
-import type { Model } from "mongoose";
+import type { ClientSession, Model } from "mongoose";
 import type { IdempotencyRecord } from "./idempotency-types";
 import { DEFAULT_TTL_HOURS } from "./idempotency-types";
 
@@ -48,6 +48,37 @@ export class IdempotencyService {
         });
 
         return record.save();
+    }
+
+    /**
+     * Create new idempotency record with TTL (with MongoDB session for transactions)
+     */
+    async createWithSession(
+        data: {
+            key: string;
+            userId: string;
+            endpoint: string;
+            statusCode: number;
+            response: Record<string, unknown>;
+            ttlHours?: number;
+        },
+        session: ClientSession
+    ): Promise<IdempotencyRecord> {
+        const expiresAt = new Date();
+        expiresAt.setHours(
+            expiresAt.getHours() + (data.ttlHours || DEFAULT_TTL_HOURS)
+        );
+
+        const record = new this.idempotencyModel({
+            key: data.key,
+            userId: data.userId,
+            endpoint: data.endpoint,
+            statusCode: data.statusCode,
+            response: data.response,
+            expiresAt,
+        });
+
+        return record.save({ session });
     }
 
     /**
