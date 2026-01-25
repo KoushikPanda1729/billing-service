@@ -23,32 +23,53 @@ export const handleMessage = async (message: ConsumedMessage) => {
         data: Product | Topping;
     };
 
+    // Using upsert for idempotency - safe to process same message multiple times
     switch (payload.event) {
         case "product-created":
-            await ProductModel.create(payload.data);
-            logger.info("Product saved:", { id: payload.data._id });
+            // Upsert: creates if not exists, updates if exists (idempotent)
+            await ProductModel.findByIdAndUpdate(
+                payload.data._id,
+                payload.data,
+                { upsert: true, new: true }
+            );
+            logger.info("Product saved (idempotent):", {
+                id: payload.data._id,
+            });
             break;
         case "product-updated":
             await ProductModel.findByIdAndUpdate(
                 payload.data._id,
-                payload.data
+                payload.data,
+                { upsert: true, new: true }
             );
-            logger.info("Product updated:", { id: payload.data._id });
+            logger.info("Product updated (idempotent):", {
+                id: payload.data._id,
+            });
             break;
         case "product-deleted":
             await ProductModel.findByIdAndDelete(payload.data._id);
             logger.info("Product deleted:", { id: payload.data._id });
             break;
         case "topping-created":
-            await ToppingModel.create(payload.data);
-            logger.info("Topping saved:", { id: payload.data._id });
+            // Upsert: creates if not exists, updates if exists (idempotent)
+            await ToppingModel.findByIdAndUpdate(
+                payload.data._id,
+                payload.data,
+                { upsert: true, new: true }
+            );
+            logger.info("Topping saved (idempotent):", {
+                id: payload.data._id,
+            });
             break;
         case "topping-updated":
             await ToppingModel.findByIdAndUpdate(
                 payload.data._id,
-                payload.data
+                payload.data,
+                { upsert: true, new: true }
             );
-            logger.info("Topping updated:", { id: payload.data._id });
+            logger.info("Topping updated (idempotent):", {
+                id: payload.data._id,
+            });
             break;
         case "topping-deleted":
             await ToppingModel.findByIdAndDelete(payload.data._id);

@@ -17,6 +17,7 @@ import orderValidator from "./order-validator";
 import updateStatusValidator from "./update-status-validator";
 import OrderModel from "./order-model";
 import CouponModel from "../coupon/coupon-model";
+import { idempotencyMiddleware } from "../idempotency";
 
 const router = Router();
 
@@ -60,11 +61,12 @@ router.get(
     )
 );
 
-// Create order
+// Create order (with idempotency to prevent duplicate orders)
 router.post(
     "/",
     authenticate,
     authorize([Roles.ADMIN, Roles.MANAGER, Roles.CUSTOMER]),
+    idempotencyMiddleware({ required: true }), // Requires x-idempotency-key header
     orderValidator,
     asyncHandler((req: Request, res: Response, next: NextFunction) =>
         orderController.create(req, res, next)
