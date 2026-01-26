@@ -119,4 +119,25 @@ export class StripeGateway implements PaymentGateway {
         const session = await this.stripe.checkout.sessions.retrieve(paymentId);
         return session as unknown as Record<string, unknown>;
     }
+
+    async getRefunds(paymentId: string): Promise<RefundResult[]> {
+        // Get the session to find the payment intent
+        const session = await this.stripe.checkout.sessions.retrieve(paymentId);
+
+        if (!session.payment_intent) {
+            return [];
+        }
+
+        // List all refunds for this payment intent
+        const refunds = await this.stripe.refunds.list({
+            payment_intent: session.payment_intent as string,
+        });
+
+        return refunds.data.map((refund) => ({
+            id: refund.id,
+            paymentId: paymentId,
+            amount: refund.amount || 0,
+            status: refund.status || "pending",
+        }));
+    }
 }

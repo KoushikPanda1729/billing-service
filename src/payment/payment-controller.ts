@@ -172,4 +172,30 @@ export class PaymentController {
             return next(createHttpError(400, err.message));
         }
     }
+
+    async getRefunds(
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ): Promise<void> {
+        const { orderId } = req.params;
+
+        if (!orderId) {
+            return next(createHttpError(400, "Order ID is required"));
+        }
+
+        try {
+            const refunds =
+                await this.paymentService.getRefundsForOrder(orderId);
+
+            res.status(200).json({
+                message: "Refunds fetched successfully",
+                refunds,
+            });
+        } catch (error) {
+            const err = error as Error;
+            this.logger.error(`Failed to get refunds: ${err.message}`);
+            return next(createHttpError(400, err.message));
+        }
+    }
 }

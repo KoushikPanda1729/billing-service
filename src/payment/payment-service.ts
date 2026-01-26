@@ -100,4 +100,21 @@ export class PaymentService {
     async getPaymentDetails(paymentId: string) {
         return this.gateway.getPaymentDetails(paymentId);
     }
+
+    async getRefundsForOrder(orderId: string) {
+        const order = await this.orderService.getById(orderId);
+        if (!order) {
+            throw new Error("Order not found");
+        }
+
+        if (!order.paymentId) {
+            throw new Error("No payment found for this order");
+        }
+
+        if (!this.gateway.getRefunds) {
+            throw new Error("Refund listing not supported by this gateway");
+        }
+
+        return this.gateway.getRefunds(order.paymentId);
+    }
 }

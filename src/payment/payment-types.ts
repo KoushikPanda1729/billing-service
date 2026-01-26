@@ -49,6 +49,7 @@ export interface PaymentGateway {
     ): Promise<PaymentVerificationResult>;
     refund(request: RefundRequest): Promise<RefundResult>;
     getPaymentDetails(paymentId: string): Promise<Record<string, unknown>>;
+    getRefunds?(paymentId: string): Promise<RefundResult[]>;
 }
 
 export type PaymentGatewayType = "razorpay" | "stripe" | "paypal";

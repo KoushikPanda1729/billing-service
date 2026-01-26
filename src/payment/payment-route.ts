@@ -65,6 +65,16 @@ router.post(
     })
 );
 
+// Get refunds for an order - admin/manager only
+router.get(
+    "/refunds/:orderId",
+    authenticate,
+    authorize([Roles.ADMIN, Roles.MANAGER, Roles.CUSTOMER]),
+    asyncHandler(async (req, res, next) => {
+        await paymentController.getRefunds(req, res, next);
+    })
+);
+
 // Get payment details - admin/manager only
 router.get(
     "/:paymentId",
