@@ -12,6 +12,7 @@ import orderRouter from "./order/order-route";
 import taxRouter from "./tax/tax-route";
 import deliveryRouter from "./delivery/delivery-route";
 import paymentRouter from "./payment/payment-route";
+import webhookRouter from "./payment/webhook-route";
 import cookieParser from "cookie-parser";
 
 const app = express();
@@ -22,6 +23,14 @@ app.use(
         credentials: true,
     })
 );
+
+// Webhook route needs raw body - must be BEFORE express.json()
+app.use(
+    "/payments/webhook",
+    express.raw({ type: "application/json" }),
+    webhookRouter
+);
+
 app.use(express.json());
 app.use(cookieParser());
 

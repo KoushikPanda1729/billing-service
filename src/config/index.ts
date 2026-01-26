@@ -15,4 +15,5 @@ export const Config = {
     RAZORPAY_KEY_SECRET: config.get<string>("payment.razorpay.keySecret"),
     STRIPE_SECRET_KEY: config.get<string>("payment.stripe.secretKey"),
     STRIPE_PUBLISHABLE_KEY: config.get<string>("payment.stripe.publishableKey"),
+    STRIPE_WEBHOOK_SECRET: config.get<string>("payment.stripe.webhookSecret"),
 };
