@@ -26,6 +26,8 @@ const gatewayFactory = new PaymentGatewayFactory({
     },
     stripe: {
         secretKey: Config.STRIPE_SECRET_KEY,
+        successUrl: Config.STRIPE_SUCCESS_URL,
+        cancelUrl: Config.STRIPE_CANCEL_URL,
     },
 });
 

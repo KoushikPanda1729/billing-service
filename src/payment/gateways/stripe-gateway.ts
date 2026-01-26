@@ -14,10 +14,10 @@ export class StripeGateway implements PaymentGateway {
     private successUrl: string;
     private cancelUrl: string;
 
-    constructor(secretKey: string, successUrl?: string, cancelUrl?: string) {
+    constructor(secretKey: string, successUrl: string, cancelUrl: string) {
         this.stripe = new Stripe(secretKey);
-        this.successUrl = successUrl || "http://localhost:3000/payment/success";
-        this.cancelUrl = cancelUrl || "http://localhost:3000/payment/cancel";
+        this.successUrl = successUrl;
+        this.cancelUrl = cancelUrl;
     }
 
     async createOrder(request: CreateOrderRequest): Promise<PaymentOrder> {

@@ -16,4 +16,6 @@ export const Config = {
     STRIPE_SECRET_KEY: config.get<string>("payment.stripe.secretKey"),
     STRIPE_PUBLISHABLE_KEY: config.get<string>("payment.stripe.publishableKey"),
     STRIPE_WEBHOOK_SECRET: config.get<string>("payment.stripe.webhookSecret"),
+    STRIPE_SUCCESS_URL: config.get<string>("payment.stripe.successUrl"),
+    STRIPE_CANCEL_URL: config.get<string>("payment.stripe.cancelUrl"),
 };

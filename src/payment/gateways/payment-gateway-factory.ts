@@ -9,6 +9,8 @@ interface GatewayConfig {
     };
     stripe?: {
         secretKey: string;
+        successUrl: string;
+        cancelUrl: string;
     };
     paypal?: {
         clientId: string;
@@ -38,7 +40,11 @@ export class PaymentGatewayFactory {
                 if (!this.config.stripe) {
                     throw new Error("Stripe configuration not provided");
                 }
-                return new StripeGateway(this.config.stripe.secretKey);
+                return new StripeGateway(
+                    this.config.stripe.secretKey,
+                    this.config.stripe.successUrl,
+                    this.config.stripe.cancelUrl
+                );
 
             case "paypal":
                 // Placeholder for PayPal implementation
