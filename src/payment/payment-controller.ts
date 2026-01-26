@@ -26,11 +26,15 @@ export class PaymentController {
 
         const { orderId } = req.body as { orderId: string };
         const currency = (req.body as { currency?: string }).currency || "INR";
+        const idempotencyKey = req.headers["x-idempotency-key"] as
+            | string
+            | undefined;
 
         try {
             const paymentOrder = await this.paymentService.initiatePayment(
                 orderId,
-                currency
+                currency,
+                idempotencyKey
             );
 
             this.logger.info(`Payment initiated for order: ${orderId}`);
@@ -128,11 +132,15 @@ export class PaymentController {
             orderId: string;
             amount?: number;
         };
+        const idempotencyKey = req.headers["x-idempotency-key"] as
+            | string
+            | undefined;
 
         try {
             const refund = await this.paymentService.refundPayment(
                 orderId,
-                amount
+                amount,
+                idempotencyKey
             );
 
             this.logger.info(`Refund initiated for order: ${orderId}`);

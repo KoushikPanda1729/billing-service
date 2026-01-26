@@ -9,7 +9,8 @@ export class PaymentService {
 
     async initiatePayment(
         orderId: string,
-        currency: string = "INR"
+        currency: string = "INR",
+        idempotencyKey?: string
     ): Promise<PaymentOrder> {
         // Get order details
         const order = await this.orderService.getById(orderId);
@@ -24,7 +25,9 @@ export class PaymentService {
         // Convert to smallest currency unit (paise for INR)
         const amountInSmallestUnit = Math.round(order.total * 100);
 
-        const paymentOrder = await this.gateway.createOrder({
+        const createOrderRequest: Parameters<
+            typeof this.gateway.createOrder
+        >[0] = {
             amount: amountInSmallestUnit,
             currency,
             orderId: orderId,
@@ -34,7 +37,13 @@ export class PaymentService {
                 customerId: order.customerId,
                 tenantId: order.tenantId,
             },
-        });
+        };
+
+        if (idempotencyKey) {
+            createOrderRequest.idempotencyKey = idempotencyKey;
+        }
+
+        const paymentOrder = await this.gateway.createOrder(createOrderRequest);
 
         return paymentOrder;
     }
@@ -66,7 +75,11 @@ export class PaymentService {
         return { verified: false, order: null };
     }
 
-    async refundPayment(orderId: string, amount?: number) {
+    async refundPayment(
+        orderId: string,
+        amount?: number,
+        idempotencyKey?: string
+    ) {
         const order = await this.orderService.getById(orderId);
         if (!order) {
             throw new Error("Order not found");
@@ -90,6 +103,10 @@ export class PaymentService {
 
         if (amount) {
             refundRequest.amount = Math.round(amount * 100);
+        }
+
+        if (idempotencyKey) {
+            refundRequest.idempotencyKey = idempotencyKey;
         }
 
         const refund = await this.gateway.refund(refundRequest);

@@ -4,6 +4,7 @@ export interface CreateOrderRequest {
     orderId: string;
     receipt?: string;
     notes?: Record<string, string>;
+    idempotencyKey?: string;
 }
 
 export interface PaymentOrder {
@@ -32,6 +33,7 @@ export interface RefundRequest {
     paymentId: string;
     amount?: number; // Optional for partial refund
     notes?: Record<string, string>;
+    idempotencyKey?: string;
 }
 
 export interface RefundResult {

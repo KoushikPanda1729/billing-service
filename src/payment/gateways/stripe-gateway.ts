@@ -21,30 +21,38 @@ export class StripeGateway implements PaymentGateway {
     }
 
     async createOrder(request: CreateOrderRequest): Promise<PaymentOrder> {
-        // Create a Checkout Session
-        const session = await this.stripe.checkout.sessions.create({
-            payment_method_types: ["card"],
-            line_items: [
-                {
-                    price_data: {
-                        currency: request.currency.toLowerCase(),
-                        product_data: {
-                            name: `Order #${request.orderId}`,
+        // Create a Checkout Session with optional idempotency key
+        const options: Stripe.RequestOptions = {};
+        if (request.idempotencyKey) {
+            options.idempotencyKey = request.idempotencyKey;
+        }
+
+        const session = await this.stripe.checkout.sessions.create(
+            {
+                payment_method_types: ["card"],
+                line_items: [
+                    {
+                        price_data: {
+                            currency: request.currency.toLowerCase(),
+                            product_data: {
+                                name: `Order #${request.orderId}`,
+                            },
+                            unit_amount: request.amount,
                         },
-                        unit_amount: request.amount,
+                        quantity: 1,
                     },
-                    quantity: 1,
+                ],
+                mode: "payment",
+                success_url: `${this.successUrl}?session_id={CHECKOUT_SESSION_ID}`,
+                cancel_url: this.cancelUrl,
+                metadata: {
+                    orderId: request.orderId,
+                    receipt: request.receipt || request.orderId,
+                    ...request.notes,
                 },
-            ],
-            mode: "payment",
-            success_url: `${this.successUrl}?session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: this.cancelUrl,
-            metadata: {
-                orderId: request.orderId,
-                receipt: request.receipt || request.orderId,
-                ...request.notes,
             },
-        });
+            options
+        );
 
         const result: PaymentOrder = {
             id: request.orderId,
@@ -103,7 +111,13 @@ export class StripeGateway implements PaymentGateway {
             refundParams.metadata = request.notes;
         }
 
-        const refund = await this.stripe.refunds.create(refundParams);
+        // Add idempotency key if provided
+        const options: Stripe.RequestOptions = {};
+        if (request.idempotencyKey) {
+            options.idempotencyKey = request.idempotencyKey;
+        }
+
+        const refund = await this.stripe.refunds.create(refundParams, options);
 
         return {
             id: refund.id,
