@@ -17,26 +17,28 @@ export const initiatePaymentValidator = [
 ];
 
 export const verifyPaymentValidator = [
-    body("razorpay_order_id")
-        .exists()
-        .withMessage("Razorpay order ID is required")
-        .isString()
-        .withMessage("Razorpay order ID must be a string"),
-    body("razorpay_payment_id")
-        .exists()
-        .withMessage("Razorpay payment ID is required")
-        .isString()
-        .withMessage("Razorpay payment ID must be a string"),
-    body("razorpay_signature")
-        .exists()
-        .withMessage("Razorpay signature is required")
-        .isString()
-        .withMessage("Razorpay signature must be a string"),
     body("orderId")
         .exists()
         .withMessage("Order ID is required")
         .isString()
         .withMessage("Order ID must be a string"),
+    body("sessionId")
+        .optional()
+        .isString()
+        .withMessage("Session ID must be a string"),
+    // Razorpay fields (optional - used when gateway is razorpay)
+    body("razorpay_order_id")
+        .optional()
+        .isString()
+        .withMessage("Razorpay order ID must be a string"),
+    body("razorpay_payment_id")
+        .optional()
+        .isString()
+        .withMessage("Razorpay payment ID must be a string"),
+    body("razorpay_signature")
+        .optional()
+        .isString()
+        .withMessage("Razorpay signature must be a string"),
 ];
 
 export const refundPaymentValidator = [

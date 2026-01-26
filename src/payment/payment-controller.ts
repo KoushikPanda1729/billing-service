@@ -63,20 +63,27 @@ export class PaymentController {
             razorpay_order_id,
             razorpay_payment_id,
             razorpay_signature,
+            sessionId,
             orderId,
         } = req.body as {
-            razorpay_order_id: string;
-            razorpay_payment_id: string;
-            razorpay_signature: string;
+            razorpay_order_id?: string;
+            razorpay_payment_id?: string;
+            razorpay_signature?: string;
+            sessionId?: string;
             orderId: string;
         };
 
         try {
+            // Determine gateway order ID and payment ID based on what's provided
+            const gatewayOrderId = sessionId || razorpay_order_id || "";
+            const paymentId = sessionId || razorpay_payment_id || "";
+            const signature = razorpay_signature || "";
+
             const { verified, order } =
                 await this.paymentService.verifyAndUpdatePayment(
-                    razorpay_order_id,
-                    razorpay_payment_id,
-                    razorpay_signature,
+                    gatewayOrderId,
+                    paymentId,
+                    signature,
                     orderId
                 );
 

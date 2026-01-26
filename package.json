@@ -66,6 +66,7 @@
         "mongoose": "^9.1.2",
         "mongoose-aggregate-paginate-v2": "^1.1.4",
         "razorpay": "^2.9.6",
+        "stripe": "^20.2.0",
         "supertest": "^7.1.4",
         "winston": "^3.18.3"
     }

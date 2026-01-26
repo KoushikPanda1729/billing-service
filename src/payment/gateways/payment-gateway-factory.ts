@@ -1,5 +1,6 @@
 import type { PaymentGateway, PaymentGatewayType } from "../payment-types";
 import { RazorpayGateway } from "./razorpay-gateway";
+import { StripeGateway } from "./stripe-gateway";
 
 interface GatewayConfig {
     razorpay?: {
@@ -34,8 +35,10 @@ export class PaymentGatewayFactory {
                 );
 
             case "stripe":
-                // Placeholder for Stripe implementation
-                throw new Error("Stripe gateway not yet implemented");
+                if (!this.config.stripe) {
+                    throw new Error("Stripe configuration not provided");
+                }
+                return new StripeGateway(this.config.stripe.secretKey);
 
             case "paypal":
                 // Placeholder for PayPal implementation

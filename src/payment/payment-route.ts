@@ -24,6 +24,9 @@ const gatewayFactory = new PaymentGatewayFactory({
         keyId: Config.RAZORPAY_KEY_ID,
         keySecret: Config.RAZORPAY_KEY_SECRET,
     },
+    stripe: {
+        secretKey: Config.STRIPE_SECRET_KEY,
+    },
 });
 
 const paymentGateway = gatewayFactory.create(Config.PAYMENT_GATEWAY);

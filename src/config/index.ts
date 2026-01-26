@@ -13,4 +13,6 @@ export const Config = {
     PAYMENT_GATEWAY: config.get<PaymentGatewayType>("payment.gateway"),
     RAZORPAY_KEY_ID: config.get<string>("payment.razorpay.keyId"),
     RAZORPAY_KEY_SECRET: config.get<string>("payment.razorpay.keySecret"),
+    STRIPE_SECRET_KEY: config.get<string>("payment.stripe.secretKey"),
+    STRIPE_PUBLISHABLE_KEY: config.get<string>("payment.stripe.publishableKey"),
 };

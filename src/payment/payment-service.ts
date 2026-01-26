@@ -46,7 +46,7 @@ export class PaymentService {
         orderId: string
     ): Promise<{ verified: boolean; order: unknown }> {
         const result = await this.gateway.verifyPayment({
-            orderId: gatewayOrderId,
+            orderId: orderId,
             paymentId,
             signature,
         });

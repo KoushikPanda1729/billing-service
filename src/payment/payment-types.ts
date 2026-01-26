@@ -13,6 +13,7 @@ export interface PaymentOrder {
     receipt?: string;
     status: string;
     gatewayOrderId: string;
+    paymentUrl?: string | null; // URL to redirect user for payment (Stripe Checkout)
 }
 
 export interface VerifyPaymentRequest {
