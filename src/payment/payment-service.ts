@@ -54,6 +54,12 @@ export class PaymentService {
         signature: string,
         orderId: string
     ): Promise<{ verified: boolean; order: unknown }> {
+        // Check if order is already paid (prevents race condition with webhook)
+        const existingOrder = await this.orderService.getById(orderId);
+        if (existingOrder?.paymentStatus === "paid") {
+            return { verified: true, order: existingOrder };
+        }
+
         const result = await this.gateway.verifyPayment({
             orderId: orderId,
             paymentId,
@@ -110,6 +116,12 @@ export class PaymentService {
         }
 
         const refund = await this.gateway.refund(refundRequest);
+
+        // Update order status to "refunded" for full refunds
+        const isFullRefund = !amount || amount >= order.total;
+        if (isFullRefund && refund.status === "succeeded") {
+            await this.orderService.updatePaymentStatus(orderId, "refunded");
+        }
 
         return refund;
     }

@@ -41,7 +41,7 @@ export class WebhookController {
             return;
         }
 
-        // Handle the event
+        // Handle the event - always return 200 to prevent Stripe retries
         try {
             switch (event.type) {
                 case "checkout.session.completed": {
@@ -71,13 +71,14 @@ export class WebhookController {
                 default:
                     this.logger.info(`Unhandled event type: ${event.type}`);
             }
-
-            res.status(200).json({ received: true });
         } catch (err) {
             const error = err as Error;
+            // Log error but don't return 500 - prevents Stripe retries causing duplicates
             this.logger.error(`Webhook handler error: ${error.message}`);
-            res.status(500).send(`Webhook handler error: ${error.message}`);
         }
+
+        // Always return 200 to acknowledge receipt
+        res.status(200).json({ received: true });
     }
 
     private async handleCheckoutSessionCompleted(
@@ -88,6 +89,15 @@ export class WebhookController {
         if (!orderId) {
             this.logger.error(
                 "Checkout session completed but no orderId in metadata"
+            );
+            return;
+        }
+
+        // Check if order is already paid (prevents race condition with verify endpoint)
+        const order = await this.orderService.getById(orderId);
+        if (order?.paymentStatus === "paid") {
+            this.logger.info(
+                `Order ${orderId} already marked as paid, skipping`
             );
             return;
         }

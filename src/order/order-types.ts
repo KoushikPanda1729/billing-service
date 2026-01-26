@@ -8,7 +8,7 @@ export type OrderStatus =
 
 export type PaymentMode = "card" | "cash" | "upi" | "netbanking" | "wallet";
 
-export type PaymentStatus = "pending" | "paid" | "failed";
+export type PaymentStatus = "pending" | "paid" | "failed" | "refunded";
 
 export interface OrderTopping {
     _id: string;
