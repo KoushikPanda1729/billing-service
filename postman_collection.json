@@ -2069,7 +2069,7 @@
             "name": "Payments",
             "item": [
                 {
-                    "name": "Initiate Payment",
+                    "name": "Initiate Payment (Stripe)",
                     "event": [
                         {
                             "listen": "test",
@@ -2077,9 +2077,15 @@
                                 "exec": [
                                     "if (pm.response.code === 200) {",
                                     "    var jsonData = pm.response.json();",
-                                    "    if (jsonData.payment && jsonData.payment.gatewayOrderId) {",
-                                    "        pm.environment.set('razorpay_order_id', jsonData.payment.gatewayOrderId);",
-                                    "        console.log('Razorpay order ID saved: ' + jsonData.payment.gatewayOrderId);",
+                                    "    if (jsonData.payment) {",
+                                    "        if (jsonData.payment.gatewayOrderId) {",
+                                    "            pm.environment.set('stripe_session_id', jsonData.payment.gatewayOrderId);",
+                                    "            console.log('Stripe session ID saved: ' + jsonData.payment.gatewayOrderId);",
+                                    "        }",
+                                    "        if (jsonData.payment.paymentUrl) {",
+                                    "            pm.environment.set('stripe_payment_url', jsonData.payment.paymentUrl);",
+                                    "            console.log('Payment URL: ' + jsonData.payment.paymentUrl);",
+                                    "        }",
                                     "    }",
                                     "}"
                                 ],
@@ -2093,6 +2099,12 @@
                             {
                                 "key": "Content-Type",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "x-idempotency-key",
+                                "value": "{{idempotency_key}}",
+                                "description": "Optional: Prevents duplicate payments",
+                                "disabled": true
                             }
                         ],
                         "body": {
@@ -2104,12 +2116,35 @@
                             "host": ["{{base_url}}"],
                             "path": ["payments", "initiate"]
                         },
-                        "description": "Initiate payment for an order. Returns Razorpay order ID to use with Razorpay checkout.\n\n**Flow:**\n1. Create order via POST /orders\n2. Call this endpoint with the order ID\n3. Use the gatewayOrderId in Razorpay checkout\n4. After payment, call /payments/verify"
+                        "description": "Initiate payment for an order using Stripe Checkout.\n\n**Flow:**\n1. Create order via POST /orders\n2. Call this endpoint with the order ID\n3. Open the paymentUrl in browser to complete payment\n4. Webhook auto-updates order status (or call /payments/verify)\n\n**Response:**\n- gatewayOrderId: Stripe session ID\n- paymentUrl: URL to open for payment\n\n**Test Card:** 4242 4242 4242 4242"
                     },
                     "response": []
                 },
                 {
-                    "name": "Verify Payment",
+                    "name": "Verify Payment (Stripe)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"orderId\": \"{{order_id}}\",\n    \"sessionId\": \"{{stripe_session_id}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/payments/verify",
+                            "host": ["{{base_url}}"],
+                            "path": ["payments", "verify"]
+                        },
+                        "description": "Verify payment after Stripe checkout completion.\n\n**Note:** With webhooks enabled, this is optional - webhook auto-updates order status.\n\n**Parameters:**\n- orderId: Your internal order ID\n- sessionId: Stripe checkout session ID\n\n**On success:** Order's paymentStatus is updated to 'paid'"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Verify Payment (Razorpay)",
                     "request": {
                         "method": "POST",
                         "header": [
@@ -2139,6 +2174,41 @@
                             {
                                 "key": "Content-Type",
                                 "value": "application/json"
+                            },
+                            {
+                                "key": "x-idempotency-key",
+                                "value": "{{idempotency_key}}",
+                                "description": "Optional: Prevents duplicate refunds",
+                                "disabled": true
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"orderId\": \"{{order_id}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/payments/refund",
+                            "host": ["{{base_url}}"],
+                            "path": ["payments", "refund"]
+                        },
+                        "description": "Initiate a refund for a paid order.\n\n**Access:** Admin/Manager only\n\n**Parameters:**\n- orderId: The order ID to refund\n- amount (optional): Partial refund amount in rupees. If not provided, full refund is initiated.\n\n**Headers:**\n- x-idempotency-key (optional): Prevents duplicate refunds"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Refund Payment (Partial)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "x-idempotency-key",
+                                "value": "{{idempotency_key}}",
+                                "description": "Optional: Prevents duplicate refunds",
+                                "disabled": true
                             }
                         ],
                         "body": {
@@ -2150,7 +2220,21 @@
                             "host": ["{{base_url}}"],
                             "path": ["payments", "refund"]
                         },
-                        "description": "Initiate a refund for a paid order.\n\n**Access:** Admin/Manager only\n\n**Parameters:**\n- orderId: The order ID to refund\n- amount (optional): Partial refund amount in rupees. If not provided, full refund is initiated."
+                        "description": "Initiate a partial refund for a paid order.\n\n**Access:** Admin/Manager only\n\n**Parameters:**\n- orderId: The order ID to refund\n- amount: Partial refund amount in rupees (e.g., 50 = ₹50)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Refunds for Order",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/payments/refunds/{{order_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["payments", "refunds", "{{order_id}}"]
+                        },
+                        "description": "Get all refunds for an order.\n\n**Access:** Admin/Manager/Customer\n\n**Returns:** List of refunds with id, amount, and status"
                     },
                     "response": []
                 },
@@ -2160,11 +2244,11 @@
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "{{base_url}}/payments/{{razorpay_payment_id}}",
+                            "raw": "{{base_url}}/payments/{{stripe_session_id}}",
                             "host": ["{{base_url}}"],
-                            "path": ["payments", "{{razorpay_payment_id}}"]
+                            "path": ["payments", "{{stripe_session_id}}"]
                         },
-                        "description": "Get payment details from Razorpay.\n\n**Access:** Admin/Manager only"
+                        "description": "Get payment/session details from Stripe.\n\n**Access:** Admin/Manager only\n\n**Parameter:** Session ID (stripe_session_id)"
                     },
                     "response": []
                 },
@@ -2215,7 +2299,7 @@
                     "response": []
                 }
             ],
-            "description": "Payment endpoints using Razorpay.\n\n**Flow:**\n1. POST /orders - Create order\n2. POST /payments/initiate - Get Razorpay order ID\n3. Frontend opens Razorpay checkout\n4. POST /payments/verify - Verify payment\n\n**Gateway Abstraction:**\nDesigned for easy migration to other gateways (Stripe, PayPal). Change `payment.gateway` in config to switch."
+            "description": "Payment endpoints supporting Stripe and Razorpay.\n\n**Stripe Flow (Recommended):**\n1. POST /orders - Create order\n2. POST /payments/initiate - Get payment URL\n3. Open paymentUrl in browser → Complete payment\n4. Webhook auto-updates order status\n\n**Razorpay Flow:**\n1. POST /orders - Create order\n2. POST /payments/initiate - Get Razorpay order ID\n3. Frontend opens Razorpay checkout\n4. POST /payments/verify - Verify payment\n\n**Features:**\n- Idempotency support (x-idempotency-key header)\n- Webhook integration for auto status updates\n- Full and partial refunds\n- Multiple gateway support\n\n**Test Card (Stripe):** 4242 4242 4242 4242\n\n**Switch Gateway:** Change `payment.gateway` in config (stripe/razorpay)"
         }
     ],
     "variable": [
