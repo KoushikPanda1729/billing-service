@@ -2064,6 +2064,158 @@
                 }
             ],
             "description": "Delivery configuration endpoints.\n\n**Features:**\n- Order value-based tiers\n- Free delivery threshold\n- Enable/disable toggle\n- Future-ready for distance-based pricing (OSRM)\n\n**Tier Logic:**\nApplies the highest minOrderValue tier where order >= minOrderValue"
+        },
+        {
+            "name": "Payments",
+            "item": [
+                {
+                    "name": "Initiate Payment",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    if (jsonData.payment && jsonData.payment.gatewayOrderId) {",
+                                    "        pm.environment.set('razorpay_order_id', jsonData.payment.gatewayOrderId);",
+                                    "        console.log('Razorpay order ID saved: ' + jsonData.payment.gatewayOrderId);",
+                                    "    }",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"orderId\": \"{{order_id}}\",\n    \"currency\": \"INR\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/payments/initiate",
+                            "host": ["{{base_url}}"],
+                            "path": ["payments", "initiate"]
+                        },
+                        "description": "Initiate payment for an order. Returns Razorpay order ID to use with Razorpay checkout.\n\n**Flow:**\n1. Create order via POST /orders\n2. Call this endpoint with the order ID\n3. Use the gatewayOrderId in Razorpay checkout\n4. After payment, call /payments/verify"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Verify Payment",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"razorpay_order_id\": \"{{razorpay_order_id}}\",\n    \"razorpay_payment_id\": \"{{razorpay_payment_id}}\",\n    \"razorpay_signature\": \"{{razorpay_signature}}\",\n    \"orderId\": \"{{order_id}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/payments/verify",
+                            "host": ["{{base_url}}"],
+                            "path": ["payments", "verify"]
+                        },
+                        "description": "Verify payment after Razorpay checkout completion.\n\n**Parameters (from Razorpay callback):**\n- razorpay_order_id: The Razorpay order ID\n- razorpay_payment_id: The payment ID from Razorpay\n- razorpay_signature: Signature for verification\n- orderId: Your internal order ID\n\n**On success:** Order's paymentStatus is updated to 'paid'"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Refund Payment",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"orderId\": \"{{order_id}}\",\n    \"amount\": 50\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/payments/refund",
+                            "host": ["{{base_url}}"],
+                            "path": ["payments", "refund"]
+                        },
+                        "description": "Initiate a refund for a paid order.\n\n**Access:** Admin/Manager only\n\n**Parameters:**\n- orderId: The order ID to refund\n- amount (optional): Partial refund amount in rupees. If not provided, full refund is initiated."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Payment Details",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/payments/{{razorpay_payment_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["payments", "{{razorpay_payment_id}}"]
+                        },
+                        "description": "Get payment details from Razorpay.\n\n**Access:** Admin/Manager only"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "[Edge] Initiate - Invalid Order",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"orderId\": \"invalid_order_id\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/payments/initiate",
+                            "host": ["{{base_url}}"],
+                            "path": ["payments", "initiate"]
+                        },
+                        "description": "Test: Initiate payment with invalid order ID. Expected: 400 error."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "[Edge] Verify - Invalid Signature",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"razorpay_order_id\": \"order_test123\",\n    \"razorpay_payment_id\": \"pay_test123\",\n    \"razorpay_signature\": \"invalid_signature\",\n    \"orderId\": \"{{order_id}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/payments/verify",
+                            "host": ["{{base_url}}"],
+                            "path": ["payments", "verify"]
+                        },
+                        "description": "Test: Verify with invalid signature. Expected: 400 - Payment verification failed."
+                    },
+                    "response": []
+                }
+            ],
+            "description": "Payment endpoints using Razorpay.\n\n**Flow:**\n1. POST /orders - Create order\n2. POST /payments/initiate - Get Razorpay order ID\n3. Frontend opens Razorpay checkout\n4. POST /payments/verify - Verify payment\n\n**Gateway Abstraction:**\nDesigned for easy migration to other gateways (Stripe, PayPal). Change `payment.gateway` in config to switch."
         }
     ],
     "variable": [

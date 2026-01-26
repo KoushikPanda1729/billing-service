@@ -11,6 +11,7 @@ import couponRouter from "./coupon/coupon-route";
 import orderRouter from "./order/order-route";
 import taxRouter from "./tax/tax-route";
 import deliveryRouter from "./delivery/delivery-route";
+import paymentRouter from "./payment/payment-route";
 import cookieParser from "cookie-parser";
 
 const app = express();
@@ -33,6 +34,7 @@ app.use("/coupons", couponRouter);
 app.use("/orders", orderRouter);
 app.use("/taxes", taxRouter);
 app.use("/delivery", deliveryRouter);
+app.use("/payments", paymentRouter);
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 app.use((err: HttpError, _req: Request, res: Response, _next: NextFunction) => {
