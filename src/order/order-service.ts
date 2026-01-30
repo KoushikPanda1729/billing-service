@@ -107,11 +107,27 @@ export class OrderService {
         return order;
     }
 
-    async getByCustomerId(customerId: string) {
-        const orders = await this.orderModel
-            .find({ customerId })
-            .sort({ createdAt: -1 });
-        return orders;
+    async getByCustomerId(
+        customerId: string,
+        page: number = 1,
+        limit: number = 10
+    ) {
+        const skip = (page - 1) * limit;
+        const [orders, total] = await Promise.all([
+            this.orderModel
+                .find({ customerId })
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limit),
+            this.orderModel.countDocuments({ customerId }),
+        ]);
+        return {
+            data: orders,
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit),
+        };
     }
 
     async delete(orderId: string) {

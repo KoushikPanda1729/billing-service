@@ -6,6 +6,7 @@ import type { Order, OrderStatus } from "./order-types";
 import type { OrderService } from "./order-service";
 import type { CouponService } from "../coupon/coupon-service";
 import type { IdempotencyService } from "../idempotency/idempotency-service";
+import type { IMessageBroker } from "../common/types/broker";
 import { PriceCalculator } from "./price-calculator";
 import type { Logger } from "winston";
 import { Roles } from "../common/constants/roles";
@@ -17,7 +18,8 @@ export class OrderController {
         private orderService: OrderService,
         private couponService: CouponService,
         private idempotencyService: IdempotencyService,
-        private logger: Logger
+        private logger: Logger,
+        private broker: IMessageBroker
     ) {
         this.priceCalculator = new PriceCalculator();
     }
@@ -199,6 +201,23 @@ export class OrderController {
                 "Order created successfully with transaction: " +
                     order._id?.toString()
             );
+
+            try {
+                await this.broker.sendMessage({
+                    topic: "order",
+                    key: order._id?.toString(),
+                    value: JSON.stringify({
+                        event: "order-created",
+                        data: order,
+                    }),
+                });
+            } catch (brokerErr) {
+                this.logger.error(
+                    `Failed to send order-created event for order: ${order._id?.toString()}`,
+                    brokerErr
+                );
+            }
+
             res.status(201).json({ message: "Order created", order });
         } catch (error) {
             // Rollback transaction - neither order nor idempotency saved
@@ -273,6 +292,23 @@ export class OrderController {
         this.logger.info(
             "Order status updated successfully " + order._id?.toString()
         );
+
+        try {
+            await this.broker.sendMessage({
+                topic: "order",
+                key: order._id?.toString(),
+                value: JSON.stringify({
+                    event: "order-status-updated",
+                    data: order,
+                }),
+            });
+        } catch (brokerErr) {
+            this.logger.error(
+                `Failed to send order-status-updated event for order: ${order._id?.toString()}`,
+                brokerErr
+            );
+        }
+
         res.status(200).json({
             message: "Order status updated successfully",
             order,
@@ -434,6 +470,23 @@ export class OrderController {
         }
 
         this.logger.info("Order deleted successfully: " + id);
+
+        try {
+            await this.broker.sendMessage({
+                topic: "order",
+                key: id,
+                value: JSON.stringify({
+                    event: "order-deleted",
+                    data: order,
+                }),
+            });
+        } catch (brokerErr) {
+            this.logger.error(
+                `Failed to send order-deleted event for order: ${id}`,
+                brokerErr
+            );
+        }
+
         res.status(200).json({
             message: "Order deleted successfully",
             order,
@@ -451,12 +504,19 @@ export class OrderController {
             return next(createHttpError(401, "User not authenticated"));
         }
 
-        const orders = await this.orderService.getByCustomerId(String(userId));
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = parseInt(req.query.limit as string) || 10;
+
+        const result = await this.orderService.getByCustomerId(
+            String(userId),
+            page,
+            limit
+        );
 
         this.logger.info("Fetched orders for user: " + userId);
         res.status(200).json({
             message: "Orders fetched successfully",
-            orders,
+            ...result,
         });
     }
 }

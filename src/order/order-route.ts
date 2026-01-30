@@ -20,18 +20,21 @@ import OrderModel from "./order-model";
 import CouponModel from "../coupon/coupon-model";
 import IdempotencyModel from "../idempotency/idempotency-model";
 import { idempotencyMiddleware } from "../idempotency";
+import { createMessageBroker } from "../common/services/broker/MessageBrokerFactory";
 
 const router = Router();
 
 const orderService = new OrderService(OrderModel);
 const couponService = new CouponService(CouponModel);
 const idempotencyService = new IdempotencyService(IdempotencyModel);
+const broker = createMessageBroker();
 
 const orderController = new OrderController(
     orderService,
     couponService,
     idempotencyService,
-    logger
+    logger,
+    broker
 );
 
 // Get all orders (Admin, Manager can see tenant orders, Customer sees own orders)

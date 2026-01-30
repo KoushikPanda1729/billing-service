@@ -12,7 +12,7 @@ const taxComponentSchema = new mongoose.Schema(
 
 const taxConfigurationSchema = new mongoose.Schema<TaxConfiguration>(
     {
-        tenantId: { type: String, required: true, unique: true },
+        tenantId: { type: String, required: true },
         taxes: { type: [taxComponentSchema], default: [] },
     },
     {

@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import Stripe from "stripe";
 import type { Logger } from "winston";
 import type { OrderService } from "../order/order-service";
+import type { IMessageBroker } from "../common/types/broker";
 
 export class WebhookController {
     private stripe: Stripe;
@@ -10,7 +11,8 @@ export class WebhookController {
         secretKey: string,
         private webhookSecret: string,
         private orderService: OrderService,
-        private logger: Logger
+        private logger: Logger,
+        private broker: IMessageBroker
     ) {
         this.stripe = new Stripe(secretKey);
     }
@@ -103,12 +105,28 @@ export class WebhookController {
         }
 
         if (session.payment_status === "paid") {
-            this.logger.info(`Payment completed for order: ${orderId}`);
-            await this.orderService.updatePaymentStatus(
+            const updatedOrder = await this.orderService.updatePaymentStatus(
                 orderId,
                 "paid",
                 session.id
             );
+            this.logger.info(`Payment completed for order: ${orderId}`);
+
+            try {
+                await this.broker.sendMessage({
+                    topic: "order",
+                    key: orderId,
+                    value: JSON.stringify({
+                        event: "order-payment-completed",
+                        data: updatedOrder,
+                    }),
+                });
+            } catch (brokerErr) {
+                this.logger.error(
+                    `Failed to send order-payment-completed event for order: ${orderId}`,
+                    brokerErr
+                );
+            }
         }
     }
 
@@ -125,7 +143,26 @@ export class WebhookController {
         }
 
         this.logger.info(`Payment session expired for order: ${orderId}`);
-        await this.orderService.updatePaymentStatus(orderId, "failed");
+        const updatedOrder = await this.orderService.updatePaymentStatus(
+            orderId,
+            "failed"
+        );
+
+        try {
+            await this.broker.sendMessage({
+                topic: "order",
+                key: orderId,
+                value: JSON.stringify({
+                    event: "order-payment-failed",
+                    data: updatedOrder,
+                }),
+            });
+        } catch (brokerErr) {
+            this.logger.error(
+                `Failed to send order-payment-failed event for order: ${orderId}`,
+                brokerErr
+            );
+        }
     }
 
     private handleChargeRefunded(charge: Stripe.Charge): void {
@@ -146,6 +183,25 @@ export class WebhookController {
         }
 
         this.logger.info(`Payment failed for order: ${orderId}`);
-        await this.orderService.updatePaymentStatus(orderId, "failed");
+        const updatedOrder = await this.orderService.updatePaymentStatus(
+            orderId,
+            "failed"
+        );
+
+        try {
+            await this.broker.sendMessage({
+                topic: "order",
+                key: orderId,
+                value: JSON.stringify({
+                    event: "order-payment-failed",
+                    data: updatedOrder,
+                }),
+            });
+        } catch (brokerErr) {
+            this.logger.error(
+                `Failed to send order-payment-failed event for order: ${orderId}`,
+                brokerErr
+            );
+        }
     }
 }

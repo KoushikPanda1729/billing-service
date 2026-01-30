@@ -15,6 +15,7 @@ import {
 } from "./payment-validator";
 import { authorize } from "../common/middleware/authorize";
 import { Roles } from "../common/constants/roles";
+import { createMessageBroker } from "../common/services/broker/MessageBrokerFactory";
 
 const router = Router();
 
@@ -34,7 +35,8 @@ const gatewayFactory = new PaymentGatewayFactory({
 const paymentGateway = gatewayFactory.create(Config.PAYMENT_GATEWAY);
 const orderService = new OrderService(OrderModel);
 const paymentService = new PaymentService(paymentGateway, orderService);
-const paymentController = new PaymentController(paymentService, logger);
+const broker = createMessageBroker();
+const paymentController = new PaymentController(paymentService, logger, broker);
 
 // Initiate payment - authenticated users only
 router.post(
@@ -77,11 +79,9 @@ router.get(
     })
 );
 
-// Get payment details - admin/manager only
+// Get payment details - public route for payment success page
 router.get(
     "/:paymentId",
-    authenticate,
-    authorize([Roles.ADMIN, Roles.MANAGER]),
     asyncHandler(async (req, res, next) => {
         await paymentController.getDetails(req, res, next);
     })

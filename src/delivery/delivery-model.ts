@@ -23,7 +23,7 @@ const distanceConfigSchema = new mongoose.Schema(
 
 const deliveryConfigurationSchema = new mongoose.Schema<DeliveryConfiguration>(
     {
-        tenantId: { type: String, required: true, unique: true },
+        tenantId: { type: String, required: true },
         isActive: { type: Boolean, default: true },
         orderValueTiers: { type: [orderValueTierSchema], default: [] },
         freeDeliveryThreshold: { type: Number, min: 0 },

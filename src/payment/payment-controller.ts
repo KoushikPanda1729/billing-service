@@ -2,12 +2,14 @@ import type { Request, Response, NextFunction } from "express";
 import { validationResult } from "express-validator";
 import createHttpError from "http-errors";
 import type { PaymentService } from "./payment-service";
+import type { IMessageBroker } from "../common/types/broker";
 import type { Logger } from "winston";
 
 export class PaymentController {
     constructor(
         private paymentService: PaymentService,
-        private logger: Logger
+        private logger: Logger,
+        private broker: IMessageBroker
     ) {}
 
     async initiate(
@@ -93,6 +95,23 @@ export class PaymentController {
 
             if (verified) {
                 this.logger.info(`Payment verified for order: ${orderId}`);
+
+                try {
+                    await this.broker.sendMessage({
+                        topic: "order",
+                        key: orderId,
+                        value: JSON.stringify({
+                            event: "order-payment-completed",
+                            data: order,
+                        }),
+                    });
+                } catch (brokerErr) {
+                    this.logger.error(
+                        `Failed to send order-payment-completed event for order: ${orderId}`,
+                        brokerErr
+                    );
+                }
+
                 res.status(200).json({
                     message: "Payment verified successfully",
                     verified: true,
@@ -144,6 +163,23 @@ export class PaymentController {
             );
 
             this.logger.info(`Refund initiated for order: ${orderId}`);
+
+            try {
+                await this.broker.sendMessage({
+                    topic: "order",
+                    key: orderId,
+                    value: JSON.stringify({
+                        event: "order-payment-refunded",
+                        data: { orderId, refund },
+                    }),
+                });
+            } catch (brokerErr) {
+                this.logger.error(
+                    `Failed to send order-payment-refunded event for order: ${orderId}`,
+                    brokerErr
+                );
+            }
+
             res.status(200).json({
                 message: "Refund initiated successfully",
                 refund,
