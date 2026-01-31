@@ -220,8 +220,8 @@ export class OrderController {
                     order._id?.toString()
             );
 
-            // If full wallet payment, deduct wallet credits and add cashback
-            if (isFullWalletPayment && this.walletService) {
+            // Deduct wallet credits if any were applied
+            if (walletCreditsApplied > 0 && this.walletService) {
                 try {
                     await this.walletService.redeemCredits(
                         String(userId),
@@ -232,7 +232,7 @@ export class OrderController {
                         `Wallet credits ₹${walletCreditsApplied} deducted for order: ${order._id?.toString()}`
                     );
 
-                    // Add cashback for the wallet payment
+                    // Add cashback based on the full order total
                     await this.walletService.addCashback(
                         String(userId),
                         order._id?.toString() || "",
