@@ -23,7 +23,9 @@ export class PaymentService {
         }
 
         // Convert to smallest currency unit (paise for INR)
-        const amountInSmallestUnit = Math.round(order.total * 100);
+        // Use finalTotal (after wallet deduction) if available, otherwise fall back to total
+        const chargeableAmount = order.finalTotal ?? order.total;
+        const amountInSmallestUnit = Math.round(chargeableAmount * 100);
 
         const createOrderRequest: Parameters<
             typeof this.gateway.createOrder
@@ -84,46 +86,147 @@ export class PaymentService {
     async refundPayment(
         orderId: string,
         amount?: number,
-        idempotencyKey?: string
+        idempotencyKey?: string,
+        walletService?: {
+            refundToWallet: (
+                userId: string,
+                amount: number,
+                orderId: string
+            ) => Promise<unknown>;
+        }
     ) {
         const order = await this.orderService.getById(orderId);
         if (!order) {
             throw new Error("Order not found");
         }
 
-        if (!order.paymentId) {
-            throw new Error("No payment found for this order");
+        // Check if already fully refunded
+        if (order.paymentStatus === "refunded") {
+            throw new Error("Order already fully refunded");
         }
 
         if (order.paymentStatus !== "paid") {
             throw new Error("Order is not paid");
         }
 
-        const refundRequest: Parameters<typeof this.gateway.refund>[0] = {
-            paymentId: order.paymentId,
-            notes: {
-                orderId: orderId,
-                reason: "Customer refund request",
-            },
-        };
+        // Determine refund amount (full or partial)
+        const refundAmount = amount || order.total;
 
-        if (amount) {
-            refundRequest.amount = Math.round(amount * 100);
+        // Validate refund amount
+        if (refundAmount > order.total) {
+            throw new Error("Refund amount exceeds order total");
         }
 
-        if (idempotencyKey) {
-            refundRequest.idempotencyKey = idempotencyKey;
+        // Check cumulative refunds
+        const previouslyRefunded = order.refundDetails?.totalRefunded || 0;
+        const maxRefundable = order.total - previouslyRefunded;
+
+        if (refundAmount > maxRefundable) {
+            throw new Error(
+                `Maximum refundable amount is ₹${maxRefundable}. Already refunded: ₹${previouslyRefunded}`
+            );
         }
 
-        const refund = await this.gateway.refund(refundRequest);
+        // Calculate proportional split
+        const walletCreditsUsed = order.walletCreditsApplied || 0;
+        const hasWalletCredits = walletCreditsUsed > 0;
 
-        // Update order status to "refunded" for full refunds
-        const isFullRefund = !amount || amount >= order.total;
-        if (isFullRefund && refund.status === "succeeded") {
+        let walletRefundAmount = 0;
+        let gatewayRefundAmount = refundAmount;
+
+        // Special case: If finalTotal is 0 (100% wallet payment)
+        if (order.finalTotal === 0 && walletService) {
+            walletRefundAmount = refundAmount;
+            gatewayRefundAmount = 0;
+
+            // Refund to wallet only
+            await walletService.refundToWallet(
+                order.customerId,
+                walletRefundAmount,
+                orderId
+            );
+
+            // Update order status
+            const isFullRefund = refundAmount >= order.total;
+            if (isFullRefund) {
+                await this.orderService.updatePaymentStatus(
+                    orderId,
+                    "refunded"
+                );
+            }
+
+            return {
+                totalRefund: refundAmount,
+                walletRefund: walletRefundAmount,
+                gatewayRefund: 0,
+                gatewayRefundDetails: null,
+            };
+        }
+
+        // Calculate proportional split for mixed payments
+        if (hasWalletCredits && walletService) {
+            const walletProportion = walletCreditsUsed / order.total;
+            const gatewayProportion = order.finalTotal / order.total;
+
+            // Split refund proportionally
+            walletRefundAmount =
+                Math.round(refundAmount * walletProportion * 100) / 100;
+            gatewayRefundAmount =
+                Math.round(refundAmount * gatewayProportion * 100) / 100;
+
+            // Ensure total matches (handle rounding)
+            const totalCalculated = walletRefundAmount + gatewayRefundAmount;
+            if (totalCalculated !== refundAmount) {
+                const diff = refundAmount - totalCalculated;
+                gatewayRefundAmount += diff; // Adjust gateway amount
+            }
+        }
+
+        // Step 1: Refund to wallet (if applicable)
+        if (walletRefundAmount > 0 && walletService) {
+            await walletService.refundToWallet(
+                order.customerId,
+                walletRefundAmount,
+                orderId
+            );
+        }
+
+        // Step 2: Refund to payment gateway (if amount > 0)
+        let gatewayRefund = null;
+        if (gatewayRefundAmount > 0 && order.paymentId) {
+            const refundRequest: Parameters<typeof this.gateway.refund>[0] = {
+                paymentId: order.paymentId,
+                amount: Math.round(gatewayRefundAmount * 100), // Convert to paise
+                notes: {
+                    orderId: orderId,
+                    reason: "Customer refund request",
+                    walletRefundAmount: walletRefundAmount.toString(),
+                    gatewayRefundAmount: gatewayRefundAmount.toString(),
+                },
+            };
+
+            if (idempotencyKey) {
+                refundRequest.idempotencyKey = idempotencyKey;
+            }
+
+            gatewayRefund = await this.gateway.refund(refundRequest);
+        }
+
+        // Step 3: Update order status
+        const isFullRefund = refundAmount >= order.total;
+        if (
+            isFullRefund &&
+            (!gatewayRefund || gatewayRefund.status === "succeeded")
+        ) {
             await this.orderService.updatePaymentStatus(orderId, "refunded");
         }
 
-        return refund;
+        return {
+            totalRefund: refundAmount,
+            walletRefund: walletRefundAmount,
+            gatewayRefund: gatewayRefundAmount,
+            gatewayRefundDetails: gatewayRefund,
+        };
     }
 
     async getPaymentDetails(paymentId: string) {
@@ -136,8 +239,9 @@ export class PaymentService {
             throw new Error("Order not found");
         }
 
+        // Wallet-only orders have no gateway payment — return empty refunds
         if (!order.paymentId) {
-            throw new Error("No payment found for this order");
+            return [];
         }
 
         if (!this.gateway.getRefunds) {

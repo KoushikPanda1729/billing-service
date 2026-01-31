@@ -38,6 +38,16 @@ const taxBreakdownSchema = new mongoose.Schema(
     { _id: false }
 );
 
+const refundDetailsSchema = new mongoose.Schema(
+    {
+        totalRefunded: { type: Number, required: true },
+        walletRefunded: { type: Number, required: true },
+        gatewayRefunded: { type: Number, required: true },
+        refundedAt: { type: Date, required: true },
+    },
+    { _id: false }
+);
+
 const orderSchema = new mongoose.Schema<Order>(
     {
         customerId: { type: String, required: true },
@@ -50,6 +60,8 @@ const orderSchema = new mongoose.Schema<Order>(
         taxes: { type: [taxBreakdownSchema], default: [] },
         taxTotal: { type: Number, required: true, default: 0 },
         total: { type: Number, required: true },
+        walletCreditsApplied: { type: Number, default: 0 },
+        finalTotal: { type: Number, required: true },
         paymentMode: {
             type: String,
             enum: ["card", "cash", "upi", "netbanking", "wallet"],
@@ -74,6 +86,7 @@ const orderSchema = new mongoose.Schema<Order>(
             default: "pending",
         },
         tenantId: { type: String, required: true },
+        refundDetails: { type: refundDetailsSchema },
     },
     {
         timestamps: true,

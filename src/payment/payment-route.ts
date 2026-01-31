@@ -16,6 +16,8 @@ import {
 import { authorize } from "../common/middleware/authorize";
 import { Roles } from "../common/constants/roles";
 import { createMessageBroker } from "../common/services/broker/MessageBrokerFactory";
+import { WalletService } from "../wallet/wallet-service";
+import { WalletModel, WalletTransactionModel } from "../wallet/wallet-model";
 
 const router = Router();
 
@@ -36,7 +38,17 @@ const paymentGateway = gatewayFactory.create(Config.PAYMENT_GATEWAY);
 const orderService = new OrderService(OrderModel);
 const paymentService = new PaymentService(paymentGateway, orderService);
 const broker = createMessageBroker();
-const paymentController = new PaymentController(paymentService, logger, broker);
+const walletService = new WalletService(
+    WalletModel,
+    WalletTransactionModel,
+    logger
+);
+const paymentController = new PaymentController(
+    paymentService,
+    logger,
+    broker,
+    walletService
+);
 
 // Initiate payment - authenticated users only
 router.post(

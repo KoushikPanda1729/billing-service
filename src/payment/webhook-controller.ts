@@ -3,6 +3,7 @@ import Stripe from "stripe";
 import type { Logger } from "winston";
 import type { OrderService } from "../order/order-service";
 import type { IMessageBroker } from "../common/types/broker";
+import type { WalletService } from "../wallet/wallet-service";
 
 export class WebhookController {
     private stripe: Stripe;
@@ -12,7 +13,8 @@ export class WebhookController {
         private webhookSecret: string,
         private orderService: OrderService,
         private logger: Logger,
-        private broker: IMessageBroker
+        private broker: IMessageBroker,
+        private walletService: WalletService
     ) {
         this.stripe = new Stripe(secretKey);
     }
@@ -111,6 +113,23 @@ export class WebhookController {
                 session.id
             );
             this.logger.info(`Payment completed for order: ${orderId}`);
+
+            // Add cashback to wallet
+            try {
+                if (updatedOrder && updatedOrder.customerId) {
+                    await this.walletService.addCashback(
+                        updatedOrder.customerId,
+                        orderId,
+                        updatedOrder.total,
+                        updatedOrder.walletCreditsApplied || 0
+                    );
+                }
+            } catch (cashbackErr) {
+                this.logger.error(
+                    `Failed to add cashback for order: ${orderId}`,
+                    cashbackErr
+                );
+            }
 
             try {
                 await this.broker.sendMessage({

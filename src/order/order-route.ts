@@ -21,6 +21,8 @@ import CouponModel from "../coupon/coupon-model";
 import IdempotencyModel from "../idempotency/idempotency-model";
 import { idempotencyMiddleware } from "../idempotency";
 import { createMessageBroker } from "../common/services/broker/MessageBrokerFactory";
+import { WalletService } from "../wallet/wallet-service";
+import { WalletModel, WalletTransactionModel } from "../wallet/wallet-model";
 
 const router = Router();
 
@@ -28,13 +30,19 @@ const orderService = new OrderService(OrderModel);
 const couponService = new CouponService(CouponModel);
 const idempotencyService = new IdempotencyService(IdempotencyModel);
 const broker = createMessageBroker();
+const walletService = new WalletService(
+    WalletModel,
+    WalletTransactionModel,
+    logger
+);
 
 const orderController = new OrderController(
     orderService,
     couponService,
     idempotencyService,
     logger,
-    broker
+    broker,
+    walletService
 );
 
 // Get all orders (Admin, Manager can see tenant orders, Customer sees own orders)

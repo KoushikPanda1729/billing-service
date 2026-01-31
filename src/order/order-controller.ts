@@ -10,6 +10,7 @@ import type { IMessageBroker } from "../common/types/broker";
 import { PriceCalculator } from "./price-calculator";
 import type { Logger } from "winston";
 import { Roles } from "../common/constants/roles";
+import type { WalletService } from "../wallet/wallet-service";
 
 export class OrderController {
     private priceCalculator: PriceCalculator;
@@ -19,7 +20,8 @@ export class OrderController {
         private couponService: CouponService,
         private idempotencyService: IdempotencyService,
         private logger: Logger,
-        private broker: IMessageBroker
+        private broker: IMessageBroker,
+        private walletService?: WalletService
     ) {
         this.priceCalculator = new PriceCalculator();
     }
@@ -48,6 +50,7 @@ export class OrderController {
             total,
             paymentMode,
             tenantId,
+            walletCredits,
         } = req.body as {
             address: string;
             items: Order["items"];
@@ -58,6 +61,7 @@ export class OrderController {
             total: number;
             paymentMode: Order["paymentMode"];
             tenantId?: string;
+            walletCredits?: number;
         };
 
         // Get user info from JWT token
@@ -147,6 +151,18 @@ export class OrderController {
             );
         }
 
+        const walletCreditsApplied = walletCredits || 0;
+        const computedFinalTotal = Math.max(
+            0,
+            Math.round(
+                (priceValidation.finalTotal - walletCreditsApplied) * 100
+            ) / 100
+        );
+
+        // If wallet covers the full amount, mark as paid with wallet payment mode
+        const isFullWalletPayment =
+            computedFinalTotal === 0 && walletCreditsApplied > 0;
+
         const orderData: Order = {
             customerId: String(userId),
             address,
@@ -157,8 +173,10 @@ export class OrderController {
             taxes: priceValidation.taxes,
             taxTotal: priceValidation.taxTotal,
             total: priceValidation.finalTotal,
-            paymentMode,
-            paymentStatus: "pending",
+            walletCreditsApplied,
+            finalTotal: computedFinalTotal,
+            paymentMode: isFullWalletPayment ? "wallet" : paymentMode,
+            paymentStatus: isFullWalletPayment ? "paid" : "pending",
             status: "pending",
             tenantId: finalTenantId,
         };
@@ -202,18 +220,47 @@ export class OrderController {
                     order._id?.toString()
             );
 
+            // If full wallet payment, deduct wallet credits and add cashback
+            if (isFullWalletPayment && this.walletService) {
+                try {
+                    await this.walletService.redeemCredits(
+                        String(userId),
+                        walletCreditsApplied,
+                        order._id?.toString() || ""
+                    );
+                    this.logger.info(
+                        `Wallet credits ₹${walletCreditsApplied} deducted for order: ${order._id?.toString()}`
+                    );
+
+                    // Add cashback for the wallet payment
+                    await this.walletService.addCashback(
+                        String(userId),
+                        order._id?.toString() || "",
+                        priceValidation.finalTotal,
+                        walletCreditsApplied
+                    );
+                } catch (walletErr) {
+                    this.logger.error(
+                        `Failed to process wallet for order: ${order._id?.toString()}`,
+                        walletErr
+                    );
+                }
+            }
+
             try {
                 await this.broker.sendMessage({
                     topic: "order",
                     key: order._id?.toString(),
                     value: JSON.stringify({
-                        event: "order-created",
+                        event: isFullWalletPayment
+                            ? "order-payment-completed"
+                            : "order-created",
                         data: order,
                     }),
                 });
             } catch (brokerErr) {
                 this.logger.error(
-                    `Failed to send order-created event for order: ${order._id?.toString()}`,
+                    `Failed to send order event for order: ${order._id?.toString()}`,
                     brokerErr
                 );
             }

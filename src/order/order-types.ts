@@ -33,6 +33,13 @@ export interface TaxBreakdownItem {
     amount: number;
 }
 
+export interface RefundDetails {
+    totalRefunded: number;
+    walletRefunded: number;
+    gatewayRefunded: number;
+    refundedAt: Date;
+}
+
 export interface Order {
     _id?: string;
     customerId: string;
@@ -45,11 +52,14 @@ export interface Order {
     taxes: TaxBreakdownItem[];
     taxTotal: number;
     total: number;
+    walletCreditsApplied?: number; // Amount deducted from wallet
+    finalTotal: number; // total - walletCreditsApplied (actual payment needed)
     paymentMode: PaymentMode;
     paymentStatus: PaymentStatus;
     paymentId?: string;
     status: OrderStatus;
     tenantId: string;
+    refundDetails?: RefundDetails; // Track cumulative refunds
     createdAt?: Date;
     updatedAt?: Date;
 }

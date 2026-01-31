@@ -4,12 +4,14 @@ import createHttpError from "http-errors";
 import type { PaymentService } from "./payment-service";
 import type { IMessageBroker } from "../common/types/broker";
 import type { Logger } from "winston";
+import type { WalletService } from "../wallet/wallet-service";
 
 export class PaymentController {
     constructor(
         private paymentService: PaymentService,
         private logger: Logger,
-        private broker: IMessageBroker
+        private broker: IMessageBroker,
+        private walletService?: WalletService
     ) {}
 
     async initiate(
@@ -159,7 +161,8 @@ export class PaymentController {
             const refund = await this.paymentService.refundPayment(
                 orderId,
                 amount,
-                idempotencyKey
+                idempotencyKey,
+                this.walletService
             );
 
             this.logger.info(`Refund initiated for order: ${orderId}`);
