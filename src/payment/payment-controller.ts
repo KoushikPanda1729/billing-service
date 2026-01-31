@@ -5,13 +5,16 @@ import type { PaymentService } from "./payment-service";
 import type { IMessageBroker } from "../common/types/broker";
 import type { Logger } from "winston";
 import type { WalletService } from "../wallet/wallet-service";
+import type { OrderService } from "../order/order-service";
+import { getCustomerNotificationInfo } from "../common/utils/notification-helper";
 
 export class PaymentController {
     constructor(
         private paymentService: PaymentService,
         private logger: Logger,
         private broker: IMessageBroker,
-        private walletService?: WalletService
+        private walletService?: WalletService,
+        private orderService?: OrderService
     ) {}
 
     async initiate(
@@ -99,12 +102,21 @@ export class PaymentController {
                 this.logger.info(`Payment verified for order: ${orderId}`);
 
                 try {
+                    // Get customer info for notification
+                    const orderData = order as { customerId?: string };
+                    const customerInfo = await getCustomerNotificationInfo(
+                        orderData?.customerId || ""
+                    );
+
                     await this.broker.sendMessage({
                         topic: "order",
                         key: orderId,
                         value: JSON.stringify({
                             event: "order-payment-completed",
-                            data: order,
+                            data: {
+                                ...(order as object),
+                                ...customerInfo,
+                            },
                         }),
                     });
                 } catch (brokerErr) {
@@ -168,12 +180,22 @@ export class PaymentController {
             this.logger.info(`Refund initiated for order: ${orderId}`);
 
             try {
+                // Get order and customer info for notification
+                const order = await this.orderService?.getById(orderId);
+                const customerInfo = await getCustomerNotificationInfo(
+                    order?.customerId || ""
+                );
+
                 await this.broker.sendMessage({
                     topic: "order",
                     key: orderId,
                     value: JSON.stringify({
                         event: "order-payment-refunded",
-                        data: { orderId, refund },
+                        data: {
+                            orderId,
+                            refund,
+                            ...customerInfo,
+                        },
                     }),
                 });
             } catch (brokerErr) {

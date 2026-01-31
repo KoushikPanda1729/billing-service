@@ -11,6 +11,7 @@ import { PriceCalculator } from "./price-calculator";
 import type { Logger } from "winston";
 import { Roles } from "../common/constants/roles";
 import type { WalletService } from "../wallet/wallet-service";
+import { getCustomerNotificationInfo } from "../common/utils/notification-helper";
 
 export class OrderController {
     private priceCalculator: PriceCalculator;
@@ -248,6 +249,11 @@ export class OrderController {
             }
 
             try {
+                // Get customer info for notification
+                const customerInfo = await getCustomerNotificationInfo(
+                    String(userId)
+                );
+
                 await this.broker.sendMessage({
                     topic: "order",
                     key: order._id?.toString(),
@@ -255,7 +261,10 @@ export class OrderController {
                         event: isFullWalletPayment
                             ? "order-payment-completed"
                             : "order-created",
-                        data: order,
+                        data: {
+                            ...order.toObject(),
+                            ...customerInfo,
+                        },
                     }),
                 });
             } catch (brokerErr) {
@@ -341,12 +350,20 @@ export class OrderController {
         );
 
         try {
+            // Get customer info for notification
+            const customerInfo = await getCustomerNotificationInfo(
+                order.customerId
+            );
+
             await this.broker.sendMessage({
                 topic: "order",
                 key: order._id?.toString(),
                 value: JSON.stringify({
                     event: "order-status-updated",
-                    data: order,
+                    data: {
+                        ...order.toObject(),
+                        ...customerInfo,
+                    },
                 }),
             });
         } catch (brokerErr) {
@@ -519,12 +536,20 @@ export class OrderController {
         this.logger.info("Order deleted successfully: " + id);
 
         try {
+            // Get customer info for notification
+            const customerInfo = await getCustomerNotificationInfo(
+                order.customerId
+            );
+
             await this.broker.sendMessage({
                 topic: "order",
                 key: id,
                 value: JSON.stringify({
                     event: "order-deleted",
-                    data: order,
+                    data: {
+                        ...order.toObject(),
+                        ...customerInfo,
+                    },
                 }),
             });
         } catch (brokerErr) {

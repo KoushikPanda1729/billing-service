@@ -47,7 +47,8 @@ const paymentController = new PaymentController(
     paymentService,
     logger,
     broker,
-    walletService
+    walletService,
+    orderService
 );
 
 // Initiate payment - authenticated users only

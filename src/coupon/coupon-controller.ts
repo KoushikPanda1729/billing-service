@@ -90,6 +90,7 @@ export class CouponController {
                 discount,
                 validUpto: new Date(validUpto),
                 tenantId: finalTenantId,
+                isActive: true,
                 createdAt: new Date(),
                 updatedAt: new Date(),
             });
