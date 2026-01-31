@@ -5,6 +5,7 @@ export interface Coupon {
     discount: number; // Percentage value (e.g., 10 for 10%)
     validUpto: Date;
     tenantId: string;
+    isActive: boolean;
     createdAt: Date;
     updatedAt: Date;
 }

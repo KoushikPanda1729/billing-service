@@ -248,11 +248,13 @@ export class CouponController {
 
         const result = await this.couponService.getAll(filters);
 
-        // For customers, filter out expired coupons
+        // For customers, filter out expired and inactive coupons
         if (userRole === Roles.CUSTOMER) {
             const now = new Date();
             const validCoupons = result.data.filter(
-                (coupon: Coupon) => new Date(coupon.validUpto) > now
+                (coupon: Coupon) =>
+                    new Date(coupon.validUpto) > now &&
+                    coupon.isActive !== false
             );
 
             this.logger.info(
@@ -378,6 +380,64 @@ export class CouponController {
         });
     }
 
+    async toggleStatus(
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ): Promise<void> {
+        const result = validationResult(req);
+        if (!result.isEmpty()) {
+            return next(
+                createHttpError(400, "Validation Error", {
+                    errors: result.array(),
+                })
+            );
+        }
+
+        const { id } = req.params;
+
+        if (!id) {
+            return next(createHttpError(400, "Coupon ID is required"));
+        }
+
+        const existingCoupon = await this.couponService.getById(id);
+        if (!existingCoupon) {
+            return next(createHttpError(404, "Coupon not found"));
+        }
+
+        // Check if user has permission to toggle this coupon
+        const userRole = req.user?.role;
+        const userTenant = req.user?.tenant;
+
+        if (userRole === Roles.MANAGER) {
+            if (existingCoupon.tenantId !== String(userTenant)) {
+                return next(
+                    createHttpError(
+                        403,
+                        "You can only toggle coupons for your tenant"
+                    )
+                );
+            }
+        }
+
+        const newStatus = existingCoupon.isActive === false ? true : false;
+        const coupon = await this.couponService.update(id, {
+            isActive: newStatus,
+        });
+
+        if (!coupon) {
+            return next(createHttpError(404, "Coupon not found"));
+        }
+
+        this.logger.info(
+            `Coupon ${id} toggled to ${newStatus ? "active" : "inactive"}`
+        );
+        res.status(200).json({
+            message: `Coupon ${newStatus ? "activated" : "deactivated"} successfully`,
+            coupon,
+        });
+    }
+
     async verify(
         req: Request,
         res: Response,
@@ -401,6 +461,11 @@ export class CouponController {
 
         if (!coupon) {
             return next(createHttpError(404, "Coupon not found"));
+        }
+
+        // Check if coupon is inactive
+        if (coupon.isActive === false) {
+            return next(createHttpError(400, "Coupon is inactive"));
         }
 
         // Check if coupon has expired

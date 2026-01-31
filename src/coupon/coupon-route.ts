@@ -63,6 +63,16 @@ router.put(
     )
 );
 
+router.patch(
+    "/:id/toggle-status",
+    authenticate,
+    authorize([Roles.ADMIN, Roles.MANAGER]),
+    idParamValidator,
+    asyncHandler((req: Request, res: Response, next: NextFunction) =>
+        couponController.toggleStatus(req, res, next)
+    )
+);
+
 router.delete(
     "/:id",
     authenticate,
