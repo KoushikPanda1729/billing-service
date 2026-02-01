@@ -9,6 +9,7 @@ export const Config = {
     BROKER_TYPE: config.get<string>("broker.type"),
     KAFKA_CLIENT_ID: config.get<string>("kafka.clientId"),
     KAFKA_BROKERS: config.get<string[]>("kafka.brokers"),
+    CORS: config.get<{ origin: string[]; credentials: boolean }>("cors"),
     // Payment gateway config
     PAYMENT_GATEWAY: config.get<PaymentGatewayType>("payment.gateway"),
     RAZORPAY_KEY_ID: config.get<string>("payment.razorpay.keyId"),

@@ -4,6 +4,7 @@ import express, {
     type Response,
 } from "express";
 import cors from "cors";
+import { Config } from "./config";
 import logger from "./config/logger";
 import type { HttpError } from "http-errors";
 import customerRouter from "./customer/customer-route";
@@ -18,12 +19,7 @@ import cookieParser from "cookie-parser";
 
 const app = express();
 
-app.use(
-    cors({
-        origin: true,
-        credentials: true,
-    })
-);
+app.use(cors(Config.CORS));
 
 // Webhook route needs raw body - must be BEFORE express.json()
 app.use(
