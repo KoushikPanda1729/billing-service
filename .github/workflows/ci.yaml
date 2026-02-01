@@ -1,0 +1,67 @@
+name: CI Pipeline
+
+on:
+    pull_request:
+        branches:
+            - main
+            - develop
+    push:
+        branches:
+            - main
+            - develop
+
+jobs:
+    build-and-test:
+        name: Build and Test
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v3
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Run ESLint
+              run: npm run lint:fix
+
+            # - name: Run tests
+            #   run: npm test
+
+            - name: Build project
+              run: npm run build
+
+            # - name: SonarCloud Scan
+            #   uses: SonarSource/sonarcloud-github-action@master
+            #   env:
+            #       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            #       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+    build-and-push-docker:
+        name: Build and Push Docker Image
+        needs: build-and-test
+        runs-on: ubuntu-latest
+        env:
+            IMAGE_NAME: koushik172/billing-service
+            IMAGE_TAG: build-${{ github.run_number }}
+        if: github.ref == 'refs/heads/main' || github.event_name == 'push'
+
+        steps:
+            - name: Checkout Repository
+              uses: actions/checkout@v3
+
+            - name: Log in to Docker Hub
+              uses: docker/login-action@v2
+              with:
+                  username: ${{ secrets.DOCKER_USERNAME }}
+                  password: ${{ secrets.DOCKER_PASSWORD }}
+
+            - name: Create config files
+              run: |
+                mkdir -p config
+                printf 'server:\n  port: 5503\n  host: "localhost"\ncors:\n  origin:\n    - "http://localhost:3000"\n    - "http://localhost:3001"\n  credentials: true\n' > config/default.yaml
+                printf 'server:\n  port: 5503\n  host: "localhost"\ndatabase:\n  url: "${{ secrets.MONGODB_URL }}"\nauth:\n  jwksUri: "http://localhost:5501/.well-known/jwks.json"\nbroker:\n  type: "kafka"\nkafka:\n  clientId: "billing-service"\n  brokers:\n    - "localhost:9092"\ncors:\n  origin:\n    - "http://localhost:3000"\n    - "http://localhost:3001"\n  credentials: true\npayment:\n  gateway: "stripe"\n  razorpay:\n    keyId: "${{ secrets.RAZORPAY_KEY_ID }}"\n    keySecret: "${{ secrets.RAZORPAY_KEY_SECRET }}"\n  stripe:\n    secretKey: "${{ secrets.STRIPE_SECRET_KEY }}"\n    publishableKey: "${{ secrets.STRIPE_PUBLISHABLE_KEY }}"\n    webhookSecret: "${{ secrets.STRIPE_WEBHOOK_SECRET }}"\n    successUrl: "http://localhost:3001/payment/success"\n    cancelUrl: "http://localhost:3001/payment/cancel"\n' > config/development.yaml
+
+            - name: Build Docker Image
+              run: docker build -t ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} -f docker/prod/Dockerfile .
+            - name: Push Docker Image
+              run: docker push ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
