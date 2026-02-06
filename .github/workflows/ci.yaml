@@ -57,9 +57,9 @@ jobs:
 
             - name: Create config files
               run: |
-                mkdir -p config
-                printf 'server:\n  port: 5503\n  host: "localhost"\ncors:\n  origin:\n    - "http://localhost:3000"\n    - "http://localhost:3001"\n  credentials: true\n' > config/default.yaml
-                printf 'server:\n  port: 5503\n  host: "localhost"\ndatabase:\n  url: "${{ secrets.MONGODB_URL }}"\nauth:\n  jwksUri: "http://localhost:5501/.well-known/jwks.json"\nbroker:\n  type: "kafka"\nkafka:\n  clientId: "billing-service"\n  brokers:\n    - "localhost:9092"\ncors:\n  origin:\n    - "http://localhost:3000"\n    - "http://localhost:3001"\n  credentials: true\npayment:\n  gateway: "stripe"\n  razorpay:\n    keyId: "${{ secrets.RAZORPAY_KEY_ID }}"\n    keySecret: "${{ secrets.RAZORPAY_KEY_SECRET }}"\n  stripe:\n    secretKey: "${{ secrets.STRIPE_SECRET_KEY }}"\n    publishableKey: "${{ secrets.STRIPE_PUBLISHABLE_KEY }}"\n    webhookSecret: "${{ secrets.STRIPE_WEBHOOK_SECRET }}"\n    successUrl: "http://localhost:3001/payment/success"\n    cancelUrl: "http://localhost:3001/payment/cancel"\n' > config/development.yaml
+                  mkdir -p config
+                  printf 'server:\n  port: 5503\n  host: "localhost"\ncors:\n  origin:\n    - "http://localhost:3000"\n    - "http://localhost:3001"\n  credentials: true\n' > config/default.yaml
+                  printf 'server:\n  port: 5503\n  host: "localhost"\ndatabase:\n  url: "${{ secrets.MONGODB_URL }}"\nauth:\n  jwksUri: "http://localhost:5501/.well-known/jwks.json"\nbroker:\n  type: "kafka"\nkafka:\n  clientId: "billing-service"\n  brokers:\n    - "localhost:9092"\ncors:\n  origin:\n    - "http://localhost:3000"\n    - "http://localhost:3001"\n  credentials: true\npayment:\n  gateway: "stripe"\n  razorpay:\n    keyId: "${{ secrets.RAZORPAY_KEY_ID }}"\n    keySecret: "${{ secrets.RAZORPAY_KEY_SECRET }}"\n  stripe:\n    secretKey: "${{ secrets.STRIPE_SECRET_KEY }}"\n    publishableKey: "${{ secrets.STRIPE_PUBLISHABLE_KEY }}"\n    webhookSecret: "${{ secrets.STRIPE_WEBHOOK_SECRET }}"\n    successUrl: "http://localhost:3001/payment/success"\n    cancelUrl: "http://localhost:3001/payment/cancel"\n' > config/development.yaml
 
             - name: Build Docker Image
               run: docker build -t ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} -f docker/prod/Dockerfile .
