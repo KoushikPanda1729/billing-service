@@ -1,0 +1,35 @@
+server:
+    port: 5503
+    host: "localhost"
+
+database:
+    url: "mongodb://root:root@localhost:27018/billing-service?authSource=admin"
+
+auth:
+    jwksUri: "http://localhost:5501/.well-known/jwks.json"
+
+broker:
+    type: "kafka"
+
+kafka:
+    clientId: "billing-service"
+    brokers:
+        - "localhost:9092"
+
+cors:
+    origin:
+        - "http://localhost:3000"
+        - "http://localhost:3001"
+    credentials: true
+
+payment:
+    gateway: "stripe"
+    razorpay:
+        keyId: ""
+        keySecret: ""
+    stripe:
+        secretKey: ""
+        publishableKey: ""
+        webhookSecret: ""
+        successUrl: "http://localhost:3001/payment/success"
+        cancelUrl: "http://localhost:3001/payment/cancel"

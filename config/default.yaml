@@ -1,0 +1,9 @@
+server:
+    port: 5503
+    host: "localhost"
+
+cors:
+    origin:
+        - "http://localhost:3000"
+        - "http://localhost:3001"
+    credentials: true

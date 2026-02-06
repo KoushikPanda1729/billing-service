@@ -1,0 +1,23 @@
+server:
+    port: 5503
+
+auth:
+    jwksUri: "https://your-production-domain/.well-known/jwks.json"
+
+cors:
+    origin:
+        - "https://your-admin-domain.com"
+        - "https://your-client-domain.com"
+    credentials: true
+
+payment:
+    gateway: "razorpay"
+    razorpay:
+        keyId: "YOUR_RAZORPAY_LIVE_KEY_ID"
+        keySecret: "YOUR_RAZORPAY_LIVE_KEY_SECRET"
+    stripe:
+        secretKey: "YOUR_STRIPE_LIVE_SECRET_KEY"
+        publishableKey: "YOUR_STRIPE_LIVE_PUBLISHABLE_KEY"
+        webhookSecret: "YOUR_STRIPE_WEBHOOK_SECRET"
+        successUrl: "https://yourdomain.com/payment/success"
+        cancelUrl: "https://yourdomain.com/payment/cancel"

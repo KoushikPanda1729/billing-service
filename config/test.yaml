@@ -1,0 +1,12 @@
+server:
+    port: 5503
+    host: "localhost"
+
+auth:
+    jwksUri: "http://localhost:5501/.well-known/jwks.json"
+
+cors:
+    origin:
+        - "http://localhost:3000"
+        - "http://localhost:3001"
+    credentials: true

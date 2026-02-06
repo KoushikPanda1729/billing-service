@@ -1,0 +1,36 @@
+server:
+  port: "PORT"
+  host: "HOST"
+
+database:
+  url: "MONGO_URI"
+
+auth:
+  jwksUri: "JWKS_URI"
+
+broker:
+  type: "BROKER_TYPE"
+
+kafka:
+  clientId: "KAFKA_CLIENT_ID"
+  brokers: "KAFKA_BROKERS"
+  ssl: "KAFKA_SSL"
+  sasl:
+    mechanism: "KAFKA_SASL_MECHANISM"
+    username: "KAFKA_SASL_USERNAME"
+    password: "KAFKA_SASL_PASSWORD"
+
+cors:
+  origin: "CORS_ORIGIN"
+
+payment:
+  gateway: "PAYMENT_GATEWAY"
+  razorpay:
+    keyId: "RAZORPAY_KEY_ID"
+    keySecret: "RAZORPAY_KEY_SECRET"
+  stripe:
+    secretKey: "STRIPE_SECRET_KEY"
+    publishableKey: "STRIPE_PUBLISHABLE_KEY"
+    webhookSecret: "STRIPE_WEBHOOK_SECRET"
+    successUrl: "STRIPE_SUCCESS_URL"
+    cancelUrl: "STRIPE_CANCEL_URL"
