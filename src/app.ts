@@ -32,7 +32,7 @@ app.use(express.json());
 app.use(cookieParser());
 
 app.get("/", (_req: Request, res: Response) => {
-    res.status(200).send("Wellcome to billing service");
+    res.status(200).send("Wellcome to billing service add new feature");
 });
 
 app.use("/customers", customerRouter);
