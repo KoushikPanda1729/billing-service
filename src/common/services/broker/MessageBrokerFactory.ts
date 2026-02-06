@@ -13,6 +13,8 @@ export const createMessageBroker = (): IMessageBroker => {
                 broker = new KafkaBroker({
                     clientId: Config.KAFKA_CLIENT_ID,
                     brokers: Config.KAFKA_BROKERS,
+                    sasl: Config.KAFKA_SASL,
+                    ssl: Config.KAFKA_SSL,
                 });
                 break;
             default:

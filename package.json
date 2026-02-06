@@ -6,7 +6,7 @@
     "type": "module",
     "scripts": {
         "dev": "nodemon --exec tsx src/server.ts",
-        "build": "esbuild src/server.ts --bundle --platform=node --format=esm --outfile=dist/server.js --external:express --external:mongoose --external:mongoose-aggregate-paginate-v2 --external:kafkajs --external:cookie-parser --external:cors --external:express-jwt --external:express-validator --external:http-errors --external:jwks-rsa --external:winston --external:config --external:dotenv --external:razorpay --external:stripe",
+        "build": "esbuild src/server.ts --bundle --platform=node --format=esm --outfile=dist/server.js --external:express --external:mongoose --external:mongoose-aggregate-paginate-v2 --external:kafkajs --external:cookie-parser --external:cors --external:express-jwt --external:express-validator --external:http-errors --external:jwks-rsa --external:winston --external:config --external:js-yaml --external:dotenv --external:razorpay --external:stripe",
         "format:fix": "npx prettier . --write \"src/**/*.ts\"",
         "format:check": "npx prettier . --check \"src/**/*.ts\"",
         "lint:fix": "npx eslint . --fix \"src/**/*.ts\"",
@@ -53,6 +53,7 @@
     },
     "dependencies": {
         "@types/config": "^3.3.5",
+        "js-yaml": "^4.1.0",
         "@types/mongoose-aggregate-paginate-v2": "^1.0.12",
         "config": "^4.1.1",
         "cookie-parser": "^1.4.7",

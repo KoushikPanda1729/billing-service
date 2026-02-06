@@ -1,6 +1,18 @@
 export interface MessageBrokerConfig {
     clientId: string;
     brokers: string[];
+    sasl?:
+        | ({ mechanism: "plain" } & { username: string; password: string })
+        | ({ mechanism: "scram-sha-256" } & {
+              username: string;
+              password: string;
+          })
+        | ({ mechanism: "scram-sha-512" } & {
+              username: string;
+              password: string;
+          })
+        | null;
+    ssl?: boolean;
 }
 
 export interface Message {
