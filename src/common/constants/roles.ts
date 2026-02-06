@@ -1,3 +1,4 @@
+// this is all role
 export const Roles = {
     ADMIN: "admin",
     MANAGER: "manager",
