@@ -3,7 +3,7 @@ server:
     host: "localhost"
 
 database:
-    url: "mongodb://root:root@localhost:27018/billing-service?authSource=admin"
+    url: "mongodb+srv://koushikpandafs_db_user:UH4iOEp37FawElvR@microservice.jufksza.mongodb.net/billing_db?appName=microservice"
 
 auth:
     jwksUri: "http://localhost:5501/.well-known/jwks.json"

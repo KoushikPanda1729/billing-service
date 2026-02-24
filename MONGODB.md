@@ -1,7 +1,10 @@
 # MongoDB Setup Guide
 
 ## Docker Setup
+ stripe listen --forward-to http://localhost:5503/payments/webhook  
 
+
+ 
 Pull image ---> docker pull mongo
 
 Create volume ---> docker volume create billing-service-mddata
